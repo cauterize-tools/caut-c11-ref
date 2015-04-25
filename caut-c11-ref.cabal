@@ -1,0 +1,39 @@
+name:                caut-c11-ref
+version:             0.1.0.0
+license-file:        LICENSE
+author:              John Van Enk
+maintainer:          vanenkj@gmail.com
+build-type:          Simple
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      lib
+  ghc-options:         -Wall
+  default-language:    Haskell2010
+  build-depends:       base >=4.7 && <4.8,
+                       cauterize >= 0.1.0.0,
+                       containers,
+                       directory,
+                       filepath,
+                       file-embed,
+                       bytestring,
+                       text,
+                       interpolate,
+                       template-haskell
+  exposed-modules:     Cauterize.C11Ref,
+                       Cauterize.C11Ref.Ctx,
+                       Cauterize.C11Ref.FileSystem,
+                       Cauterize.C11Ref.Generate,
+                       Cauterize.C11Ref.LibCFile,
+                       Cauterize.C11Ref.LibHFile,
+                       Cauterize.C11Ref.Static,
+                       Cauterize.C11Ref.Util
+
+executable caut-c11-ref
+  hs-source-dirs:      bin
+  main-is:             Main.hs
+  build-depends:       base >=4.7 && <4.8,
+                       caut-c11-ref,
+                       cauterize >= 0.1.0.0,
+                       optparse-applicative
+  default-language:    Haskell2010
