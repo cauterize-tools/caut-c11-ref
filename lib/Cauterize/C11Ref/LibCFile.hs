@@ -4,6 +4,7 @@ module Cauterize.C11Ref.LibCFile
   ) where
 
 import Cauterize.C11Ref.LibCFile.Encoders
+import Cauterize.C11Ref.LibCFile.Decoders
 import Cauterize.C11Ref.Util
 import Data.Char (toUpper)
 import Data.List (intercalate)
@@ -36,6 +37,10 @@ fromSpec s = [chompNewline [i|
 
   , comment "type encoders"
   , unlines (map typeEncoder types)
+  , blankLine
+
+  , comment "type decoders"
+  , unlines (map typeDecoder types)
   , blankLine
 
   , chompNewline [i|

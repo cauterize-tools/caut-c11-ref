@@ -26,6 +26,7 @@ library
                        Cauterize.C11Ref.Generate,
                        Cauterize.C11Ref.LibCFile,
                        Cauterize.C11Ref.LibCFile.Encoders,
+                       Cauterize.C11Ref.LibCFile.Decoders,
                        Cauterize.C11Ref.LibHFile,
                        Cauterize.C11Ref.Static,
                        Cauterize.C11Ref.Util
