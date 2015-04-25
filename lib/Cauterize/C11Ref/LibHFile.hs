@@ -87,7 +87,7 @@ typeForwardDecl t = fmap ("  " ++) (go t)
     structish flavor = Just [i|struct #{n}; /* #{flavor} */ |]
     go S.BuiltIn { S.unBuiltIn = S.TBuiltIn { S.unTBuiltIn = b } } =
       case b of
-        S.BIbool -> Nothing
+        S.BIbool -> Nothing -- We don't want to redefine 'bool'. stdbool.h defines this for us.
         b' -> Just [i|typedef #{bi2c b'} #{n}; /* builtin */|]
     go S.Synonym { S.unSynonym = S.TSynonym { S.synonymRepr = r } } =
       Just [i|typedef #{bi2c r} #{n}; /* synonym */|]
