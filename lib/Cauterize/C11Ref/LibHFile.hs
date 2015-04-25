@@ -5,13 +5,14 @@ module Cauterize.C11Ref.LibHFile
 
 import Cauterize.C11Ref.Util
 
+import Data.List (intercalate)
 import Data.Maybe
-import qualified Data.Map as M
 import Data.String.Interpolate
 import Data.String.Interpolate.Util
 import Data.Text.Lazy (unpack)
 import qualified Cauterize.Common.Types as S
 import qualified Cauterize.Specification as S
+import qualified Data.Map as M
 
 hFileFromSpec :: S.Spec -> String
 hFileFromSpec = unindent . concat . fromSpec
@@ -29,16 +30,19 @@ fromSpec s = [chompNewline [i|
   #define MAX_SIZE_#{ln} (#{S.maxSize libsize})
 |]
   , comment "type size information"
-  , unlines (map (typeSizeInfo ln) types)
+  , unlines (map typeSizeInfo types)
+
+  , comment "type hash externs"
+  , unlines (map typeHash types)
 
   , comment "forward declarations"
   , unlines (mapMaybe typeForwardDecl types)
 
-  , comment "function prototypes"
-  , unlines (map typeFuncPrototypes types)
-
   , comment "type definitions"
   , unlines (mapMaybe (typeDefinition luDecl) types)
+
+  , comment "function prototypes"
+  , unlines (map typeFuncPrototypes types)
 
   , blankLine
   , chompNewline [i|
@@ -60,14 +64,19 @@ fromSpec s = [chompNewline [i|
     luDecl n = fromMaybe (error $ "Invalid name: " ++ unpack n ++ ".")
                          (M.lookup n n2declMap)
 
-typeSizeInfo :: String -> S.SpType -> String
-typeSizeInfo ln t = chompNewline [i|
-  #define MIN_SIZE_#{ln}_#{tn} (#{minS})
-  #define MAX_SIZE_#{ln}_#{tn} (#{maxS})|]
+typeSizeInfo :: S.SpType -> String
+typeSizeInfo t = chompNewline [i|
+  #define MIN_SIZE_#{tn} (#{minS})
+  #define MAX_SIZE_#{tn} (#{maxS})|]
   where
     tn   = S.typeName t
     minS = S.minSize t
     maxS = S.maxSize t
+
+typeHash :: S.SpType -> String
+typeHash t = [i|  extern hashtype_t const TYPE_HASH_#{n};|]
+  where
+    n = S.typeName t
 
 typeForwardDecl :: S.SpType -> Maybe String
 typeForwardDecl t = fmap ("  " ++) (go t)
@@ -104,6 +113,11 @@ typeDefinition refDecl t =
     S.Array { S.unArray = S.TArray { S.arrayRef = r, S.arrayLen = l } } -> Just $ defArray n (refDecl r) l
     S.Vector { S.unVector = S.TVector { S.vectorRef = r, S.vectorMaxLen = l }
               , S.lenRepr = S.LengthRepr lr } -> Just $ defVector n (refDecl r) l lr
+    S.Record { S.unRecord = S.TRecord { S.recordFields = S.Fields fs } } -> Just $ defRecord n refDecl fs
+    S.Combination { S.unCombination = S.TCombination { S.combinationFields = S.Fields fs }
+                  , S.flagsRepr = S.FlagsRepr fr } -> Just $ defCombination n refDecl fs fr
+    S.Union { S.unUnion = S.TUnion { S.unionFields = S.Fields fs }
+            , S.tagRepr = S.TagRepr tr } -> Just $ defUnion n refDecl fs tr
     _ -> Nothing
   where
     n = unpack $ S.typeName t
@@ -130,31 +144,46 @@ defVector n refDecl len lenRep =
   }
 |]
 
-    {-
-    S.Vector { Sp.unVector = Sp.TVector { Sp.vectorRef = r, Sp.vectorMaxLen = l } , Sp.lenRepr = Sp.LengthRepr lr } ->
-      CVector { ctdDecl = d
-              , ctdReprName = r
-              , ctdReprDecl = nameToDecl r
-              , ctdVectorMaxLen = l
-              , ctdVectorMaxLenReprName = pack . show $ lr
-              , ctdVectorMaxLenReprDecl = builtInToStdType lr
-              }
-    Sp.Record { Sp.unRecord = Sp.TRecord { Sp.recordFields = Sp.Fields fs } } ->
-      let fs' = P.map mkNamedRef' fs
-      in CRecord { ctdDecl = d, ctdFields = fs' }
-    Sp.Combination { Sp.unCombination = Sp.TCombination { Sp.combinationFields = Sp.Fields fs } , Sp.flagsRepr = Sp.FlagsRepr r } ->
-      let fs' = P.map mkNamedRef' fs
-      in CCombination { ctdDecl = d
-                      , ctdFields = fs'
-                      , ctdCombinationFlagsReprName = pack . show $ r
-                      , ctdCombinationFlagsReprDecl = builtInToStdType r
-                      }
-    Sp.Union { Sp.unUnion = Sp.TUnion { Sp.unionFields = Sp.Fields fs } , Sp.tagRepr = Sp.TagRepr r } ->
-      let fs' = P.map mkNamedRef' fs
-      in CUnion { ctdDecl = d
-                , ctdFields = fs'
-                , ctdUnionTagReprName = pack . show $ r
-                , ctdUnionTagReprDecl = builtInToStdType r
-                , ctdHasData = hasData fs'
-                }
-                -}
+defRecord :: String -> (S.Name -> String) -> [S.Field] -> String
+defRecord n refDecl fields = chompNewline [i|
+  struct #{n} {
+    #{fdefs}
+  }
+|]
+  where
+    defField S.Field { S.fName = fn, S.fRef = fr} = [i|#{refDecl fr} #{fn};|]
+    defField S.EmptyField { S.fName = fn } = [i|/* no data for field #{fn} */|]
+    fdefs = intercalate "\n    " $ map defField fields
+
+defCombination :: String -> (S.Name -> String) -> [S.Field] -> S.BuiltIn -> String
+defCombination n refDecl fields flagsRepr = chompNewline [i|
+  struct #{n} {
+    #{bi2c flagsRepr} _flags;
+    #{fdefs}
+  }
+|]
+  where
+    defField S.Field { S.fName = fn, S.fRef = fr} = [i|#{refDecl fr} #{fn};|]
+    defField S.EmptyField { S.fName = fn } = [i|/* no data for field #{fn} */|]
+    fdefs = intercalate "\n    " $ map defField fields
+
+defUnion :: String -> (S.Name -> String) -> [S.Field] -> S.BuiltIn -> String
+defUnion n refDecl fields tagRepr = chompNewline [i|
+  struct #{n} {
+    enum #{n}_tag {
+      #{tagDefs}
+    };
+
+    #{bi2c tagRepr} _tag;
+
+    union {
+      #{fdefs}
+    };
+  }
+|]
+  where
+    defField S.Field { S.fName = fn, S.fRef = fr} = [i|#{refDecl fr} #{fn};|]
+    defField S.EmptyField { S.fName = fn } = [i|/* no data for field #{fn} */|]
+    defTag f = [i|#{n}_tag_#{S.fName f} = #{S.fIndex f},|]
+    fdefs = intercalate "\n      " $ map defField fields
+    tagDefs = intercalate "\n      " $ map defTag fields
