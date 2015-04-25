@@ -28,6 +28,8 @@ fromSpec s = [chompNewline [i|
   #define VERSION_#{ln} "#{unpack $ S.specVersion s}"
   #define MIN_SIZE_#{ln} (#{S.minSize libsize})
   #define MAX_SIZE_#{ln} (#{S.maxSize libsize})
+
+  extern hashtype_t const SCHEMA_HASH_#{ln};
 |]
   , comment "type size information"
   , unlines (map typeSizeInfo types)
@@ -74,7 +76,7 @@ typeSizeInfo t = chompNewline [i|
     maxS = S.maxSize t
 
 typeHash :: S.SpType -> String
-typeHash t = [i|  extern hashtype_t const TYPE_HASH_#{n};|]
+typeHash t = [i|  extern hashtype_t const TYPE_HASH_#{n};|] -- two spaces to line up with the 'unindent' call in the end
   where
     n = S.typeName t
 
@@ -97,9 +99,9 @@ typeForwardDecl t = fmap ("  " ++) (go t)
 
 typeFuncPrototypes :: S.SpType -> String
 typeFuncPrototypes t = chompNewline [i|
-  enum caut_status pack_#{n}(struct caut_pack_iter * const _c_iter, #{d} const * const _c_obj);
-  enum caut_status unpack_#{n}(struct caut_unpack_iter * const _c_iter, #{d} * const _c_obj);
-  size_t packed_size_#{n}(#{d} const * const _c_obj);
+  enum caut_status encode_#{n}(struct caut_pack_iter * const _c_iter, #{d} const * const _c_obj);
+  enum caut_status unencode_#{n}(struct caut_unpack_iter * const _c_iter, #{d} * const _c_obj);
+  size_t encoded_size_#{n}(#{d} const * const _c_obj);
   void init_#{n}(#{d} * _c_obj);
   enum caut_ord order_#{n}(#{d} const * const _c_a, #{d} const * const _c_b);
 |]

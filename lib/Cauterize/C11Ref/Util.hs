@@ -1,5 +1,10 @@
 {-# LANGUAGE QuasiQuotes #-}
-module Cauterize.C11Ref.Util where
+module Cauterize.C11Ref.Util
+  ( bi2c
+  , t2decl
+  , chompNewline
+  , comment
+  ) where
 
 import Data.Text.Lazy (unpack)
 import Data.String.Interpolate
