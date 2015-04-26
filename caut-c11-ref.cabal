@@ -20,8 +20,7 @@ library
                        text,
                        interpolate,
                        template-haskell
-  exposed-modules:     Cauterize.C11Ref,
-                       Cauterize.C11Ref.Ctx,
+  exposed-modules:     Cauterize.C11Ref.Ctx,
                        Cauterize.C11Ref.FileSystem,
                        Cauterize.C11Ref.Generate,
                        Cauterize.C11Ref.LibCFile,
