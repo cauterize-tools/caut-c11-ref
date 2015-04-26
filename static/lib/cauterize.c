@@ -164,6 +164,7 @@ enum caut_status __caut_encode_null_bytes(struct caut_encode_iter * const iter, 
 
 enum caut_status __caut_encode_reserve(P * const iter, size_t reserve_bytes, void ** ptr) {
   if (reserve_bytes < caut_encode_iter_remaining(iter)) {
+    caut_encode_iter_advance(iter, reserve_bytes);
     *ptr = ITER_FOCUS_PTR(iter);
     return caut_status_ok;
   } else {
