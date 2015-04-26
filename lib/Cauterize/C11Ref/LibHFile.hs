@@ -32,9 +32,10 @@ fromSpec s = [chompNewline [i|
   #define VERSION_#{ln} "#{unpack $ S.specVersion s}"
   #define MIN_SIZE_#{ln} (#{S.minSize libsize})
   #define MAX_SIZE_#{ln} (#{S.maxSize libsize})
-
-  extern hashtype_t const SCHEMA_HASH_#{ln};
 |]
+  , comment "schema hash"
+  , [i|  extern hashtype_t const SCHEMA_HASH_#{ln};|]
+
   , comment "type size information"
   , unlines (map typeSizeInfo types)
 
@@ -46,6 +47,44 @@ fromSpec s = [chompNewline [i|
 
   , comment "type definitions"
   , unlines (mapMaybe (typeDefinition luDecl) types)
+
+  , [i|
+  /* message interface */
+  #define TYPE_TAG_WIDTH_#{ln} (#{(S.unTypeTagWidth . S.specTypeTagWidth) s})
+  #define LENGTH_WIDTH_#{ln} (#{(S.unLengthTagWidth . S.specLengthTagWidth) s})
+
+  #define MESSAGE_OVERHEAD_#{ln} (TYPE_TAG_WIDTH_#{ln} + LENGTH_WIDTH_#{ln})
+  #define MESSAGE_MAX_SIZE_#{ln} (MESSAGE_OVERHEAD_#{ln} + MAX_SIZE_#{ln})
+  #define MESSAGE_MIN_SIZE_#{ln} (MESSAGE_OVERHEAD_#{ln} + MIN_SIZE_#{ln})
+
+  struct message_header_#{ln} {
+    size_t length;
+    uint8_t tag[TYPE_TAG_WIDTH_#{ln}];
+  };
+
+  struct message_#{ln} {
+    enum message_type_#{ln} {
+#{typeEnums}
+    } _type;
+
+    union {
+#{typeUnionFields}
+    };
+  };
+
+  enum caut_status encode_message_#{ln}(
+    struct caut_encode_iter * const _iter,
+    struct message_#{ln} const * const _obj);
+
+  enum caut_status decode_message_header_#{ln}(
+    struct caut_decode_iter * const _iter,
+    struct message_header_#{ln} * const _header);
+
+  enum caut_status decode_message_#{ln}(
+    struct caut_decode_iter * const _iter,
+    struct message_header_#{ln} const * const _header,
+    struct message_#{ln} * const _obj);
+|]
 
   , comment "function prototypes"
   , unlines (map typeFuncPrototypes types)
@@ -61,6 +100,8 @@ fromSpec s = [chompNewline [i|
     libsize = S.specSize s
     ln = unpack $ S.specName s
     types = S.specTypes s
+    typeEnums = intercalate "\n" $ map (\t -> [i|      message_type_#{ln}_#{S.typeName t},|]) types
+    typeUnionFields = intercalate "\n" $ map (\t -> [i|      #{t2decl t} msg_#{S.typeName t};|]) types
 
     -- Names to how you delcare that name
     n2declMap = let s' = S.specTypes s
