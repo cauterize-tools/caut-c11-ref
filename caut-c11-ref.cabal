@@ -20,8 +20,7 @@ library
                        text,
                        interpolate,
                        template-haskell
-  exposed-modules:     Cauterize.C11Ref.Ctx,
-                       Cauterize.C11Ref.FileSystem,
+  exposed-modules:     Cauterize.C11Ref.FileSystem,
                        Cauterize.C11Ref.Generate,
                        Cauterize.C11Ref.LibCFile,
                        Cauterize.C11Ref.LibCFile.Encoders,
@@ -37,5 +36,6 @@ executable caut-c11-ref
   build-depends:       base >=4.7 && <4.8,
                        caut-c11-ref,
                        cauterize >= 0.1.0.0,
+                       text,
                        optparse-applicative
   default-language:    Haskell2010
