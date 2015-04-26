@@ -133,4 +133,6 @@ enum caut_status __caut_decode_bool(struct caut_decode_iter * const iter, bool *
 
 enum caut_status __caut_decode_and_ignore_bytes(struct caut_decode_iter * const iter, size_t count);
 
+enum caut_status __caut_decode_raw_bytes(struct caut_decode_iter * const iter, uint8_t * const bytes, size_t len);
+
 #endif /* _CAUTERIZE_H_ */

@@ -3,6 +3,7 @@ module Cauterize.C11Ref.Util
   ( bi2c
   , t2decl
   , len2c
+  , len2bi
   , chompNewline
   , comment
   ) where
@@ -44,6 +45,13 @@ len2c 2 = "uint16_t";
 len2c 4 = "uint32_t";
 len2c 8 = "uint64_t";
 len2c e = error "len2c: invalid length " ++ show e ++ "."
+
+len2bi :: Integer -> String
+len2bi 1 = "u8";
+len2bi 2 = "u16";
+len2bi 4 = "u32";
+len2bi 8 = "u64";
+len2bi e = error "len2bi: invalid length " ++ show e ++ "."
 
 chompNewline :: String -> String
 chompNewline ('\n':rest) = rest

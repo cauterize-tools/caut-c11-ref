@@ -191,3 +191,14 @@ enum caut_status __caut_decode_and_ignore_bytes(struct caut_decode_iter * const 
 
   return caut_status_ok;
 }
+
+enum caut_status __caut_decode_raw_bytes(struct caut_decode_iter * const iter, uint8_t * const bytes, size_t len) {
+  if (caut_decode_iter_remaining(iter) >= len) {
+    memmove(bytes, ITER_FOCUS_PTR(iter), len);
+    caut_decode_iter_advance(iter, len);
+  } else {
+    return caut_status_would_underflow;
+  }
+
+  return caut_status_ok;
+}
