@@ -3,17 +3,9 @@ module Cauterize.C11Ref.LibCFile.MessageInterface
   ( messageInterfaceFromSpec
   ) where
 
-import Cauterize.C11Ref.LibCFile.Encoders
-import Cauterize.C11Ref.LibCFile.Decoders
 import Cauterize.C11Ref.Util
-import Data.Char (toUpper)
-import Data.List (intercalate)
 import Data.String.Interpolate
-import Data.String.Interpolate.Util
 import Data.Text.Lazy (unpack)
-import Data.Word
-import Numeric
-import qualified Cauterize.FormHash as S
 import qualified Cauterize.Specification as S
 
 messageInterfaceFromSpec :: S.Spec -> String

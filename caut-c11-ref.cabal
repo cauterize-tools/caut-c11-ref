@@ -24,6 +24,7 @@ library
                        Cauterize.C11Ref.LibCFile.MessageInterface,
                        Cauterize.C11Ref.LibHFile,
                        Cauterize.C11Ref.Static,
+                       Cauterize.C11Ref.TestClient,
                        Cauterize.C11Ref.Util
 
 executable caut-c11-ref

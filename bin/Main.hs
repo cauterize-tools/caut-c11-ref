@@ -6,6 +6,7 @@ import Cauterize.C11Ref.Options
 import Cauterize.C11Ref.Static
 import Cauterize.C11Ref.LibHFile
 import Cauterize.C11Ref.LibCFile
+import Cauterize.C11Ref.TestClient
 
 import Data.Text.Lazy (unpack)
 import System.Directory
@@ -51,3 +52,4 @@ generateDynamicFiles :: FilePath -> String -> Sp.Spec -> IO ()
 generateDynamicFiles path baseName spec = do
   writeFile (path `combine` (baseName ++ ".h")) (hFileFromSpec spec)
   writeFile (path `combine` (baseName ++ ".c")) (cFileFromSpec spec)
+  writeFile (path `combine` "test_client.h")  (testClientFromSpec spec)
