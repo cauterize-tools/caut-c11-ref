@@ -24,7 +24,8 @@ fromSpec s = [chompNewline [i|
   #include "#{ln}.h"
 
   #define R enum caut_status
-  #define I struct caut_pack_iter
+  #define EI struct caut_encode_iter
+  #define DI struct caut_decode_iter
   #define FSET(FS,IX) ((FS) & (1ull << (IX)))
 |]
   , comment "schema hash"

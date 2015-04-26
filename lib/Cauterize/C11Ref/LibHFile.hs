@@ -5,11 +5,13 @@ module Cauterize.C11Ref.LibHFile
 
 import Cauterize.C11Ref.Util
 
+import Data.Char (toUpper)
 import Data.List (intercalate)
 import Data.Maybe
 import Data.String.Interpolate
 import Data.String.Interpolate.Util
 import Data.Text.Lazy (unpack)
+import Numeric
 import qualified Cauterize.Common.Types as S
 import qualified Cauterize.Specification as S
 import qualified Data.Map as M
@@ -21,6 +23,8 @@ fromSpec :: S.Spec -> [String]
 fromSpec s = [chompNewline [i|
   #ifndef #{guardSym}
   #define #{guardSym}
+
+  #include "cauterize.h"
 |]
   , comment "library meta information"
   , chompNewline [i|
@@ -99,8 +103,8 @@ typeForwardDecl t = fmap ("  " ++) (go t)
 
 typeFuncPrototypes :: S.SpType -> String
 typeFuncPrototypes t = chompNewline [i|
-  enum caut_status encode_#{n}(struct caut_pack_iter * const _c_iter, #{d} const * const _c_obj);
-  enum caut_status unencode_#{n}(struct caut_unpack_iter * const _c_iter, #{d} * const _c_obj);
+  enum caut_status encode_#{n}(struct caut_encode_iter * const _c_iter, #{d} const * const _c_obj);
+  enum caut_status decode_#{n}(struct caut_decode_iter * const _c_iter, #{d} * const _c_obj);
   size_t encoded_size_#{n}(#{d} const * const _c_obj);
   void init_#{n}(#{d} * _c_obj);
   enum caut_ord order_#{n}(#{d} const * const _c_a, #{d} const * const _c_b);
@@ -118,8 +122,7 @@ typeDefinition refDecl t =
     S.Record { S.unRecord = S.TRecord { S.recordFields = S.Fields fs } } -> Just $ defRecord n refDecl fs
     S.Combination { S.unCombination = S.TCombination { S.combinationFields = S.Fields fs }
                   , S.flagsRepr = S.FlagsRepr fr } -> Just $ defCombination n refDecl fs fr
-    S.Union { S.unUnion = S.TUnion { S.unionFields = S.Fields fs }
-            , S.tagRepr = S.TagRepr tr } -> Just $ defUnion n refDecl fs tr
+    S.Union { S.unUnion = S.TUnion { S.unionFields = S.Fields fs } } -> Just $ defUnion n refDecl fs
     _ -> Nothing
   where
     n = unpack $ S.typeName t
@@ -131,7 +134,7 @@ defArray n refDecl len =
   #define #{lenSym} (#{len})
   struct #{n} {
     #{refDecl} elems[#{lenSym}];
-  }
+  };
 |]
 
 defVector :: String -> String -> Integer -> S.BuiltIn -> String
@@ -143,14 +146,14 @@ defVector n refDecl len lenRep =
   struct #{n} {
     #{lenRepDecl} _length;
     #{refDecl} elems[#{maxLenSym}];
-  }
+  };
 |]
 
 defRecord :: String -> (S.Name -> String) -> [S.Field] -> String
 defRecord n refDecl fields = chompNewline [i|
   struct #{n} {
     #{fdefs}
-  }
+  };
 |]
   where
     defField S.Field { S.fName = fn, S.fRef = fr} = [i|#{refDecl fr} #{fn};|]
@@ -159,29 +162,32 @@ defRecord n refDecl fields = chompNewline [i|
 
 defCombination :: String -> (S.Name -> String) -> [S.Field] -> S.BuiltIn -> String
 defCombination n refDecl fields flagsRepr = chompNewline [i|
+  #define COMBINATION_FLAGS_#{n} (0x#{flagsMask}ull)
   struct #{n} {
     #{bi2c flagsRepr} _flags;
     #{fdefs}
-  }
+  };
 |]
   where
+    flagsMask = case length fields of
+                  0 -> "0"
+                  l -> map toUpper $ showHex (((2 :: Integer) ^ (l - 1)) - 1) ""
     defField S.Field { S.fName = fn, S.fRef = fr} = [i|#{refDecl fr} #{fn};|]
     defField S.EmptyField { S.fName = fn } = [i|/* no data for field #{fn} */|]
     fdefs = intercalate "\n    " $ map defField fields
 
-defUnion :: String -> (S.Name -> String) -> [S.Field] -> S.BuiltIn -> String
-defUnion n refDecl fields tagRepr = chompNewline [i|
+defUnion :: String -> (S.Name -> String) -> [S.Field] -> String
+defUnion n refDecl fields = chompNewline [i|
+  #define UNION_NUM_FIELDS_#{n} (0x#{numFields}ull)
   struct #{n} {
     enum #{n}_tag {
       #{tagDefs}
-    };
-
-    #{bi2c tagRepr} _tag;
+    } _tag;
 
     union {
       #{fdefs}
     };
-  }
+  };
 |]
   where
     defField S.Field { S.fName = fn, S.fRef = fr} = [i|#{refDecl fr} #{fn};|]
@@ -189,3 +195,4 @@ defUnion n refDecl fields tagRepr = chompNewline [i|
     defTag f = [i|#{n}_tag_#{S.fName f} = #{S.fIndex f},|]
     fdefs = intercalate "\n      " $ map defField fields
     tagDefs = intercalate "\n      " $ map defTag fields
+    numFields = length fields
