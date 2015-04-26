@@ -2,6 +2,7 @@
 module Cauterize.C11Ref.Util
   ( bi2c
   , t2decl
+  , len2c
   , chompNewline
   , comment
   ) where
@@ -36,6 +37,13 @@ t2decl t = case t of
   where
     n = unpack $ S.typeName t
     sn = [i|struct #{n}|]
+
+len2c :: Integer -> String
+len2c 1 = "uint8_t";
+len2c 2 = "uint16_t";
+len2c 4 = "uint32_t";
+len2c 8 = "uint64_t";
+len2c e = error "len2c: invalid length " ++ show e ++ "."
 
 chompNewline :: String -> String
 chompNewline ('\n':rest) = rest

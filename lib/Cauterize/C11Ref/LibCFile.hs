@@ -5,6 +5,7 @@ module Cauterize.C11Ref.LibCFile
 
 import Cauterize.C11Ref.LibCFile.Encoders
 import Cauterize.C11Ref.LibCFile.Decoders
+import Cauterize.C11Ref.LibCFile.MessageInterface
 import Cauterize.C11Ref.Util
 import Data.Char (toUpper)
 import Data.List (intercalate)
@@ -32,9 +33,15 @@ fromSpec s = [chompNewline [i|
   , [i|  hashtype_t const SCHEMA_HASH_#{ln} = { #{hashToBytes (S.specHash s)} };|]
   , blankLine
 
-  , comment "type hashes"
-  , unlines (map typeHash types)
-  , blankLine
+  , comment "type descriptors"
+  , chompNewline [i|
+  const caut_type_descriptors_#{ln}_t type_descriptors = {
+#{typeDescs}
+  };
+|]
+
+  , comment "message interface"
+  , messageInterfaceFromSpec s
 
   , comment "type encoders"
   , unlines (map typeEncoder types)
@@ -54,18 +61,26 @@ fromSpec s = [chompNewline [i|
     types = S.specTypes s
     ln = unpack $ S.specName s
     blankLine = "\n"
-    {-
-    n2declMap = let s' = S.specTypes s
-                    d = map t2decl s'
-                    n = fmap S.typeName s'
-                in M.fromList $ zip n d
-    luDecl n = fromMaybe (error $ "Invalid name: " ++ unpack n ++ ".")
-                         (M.lookup n n2declMap)
-    -}
+    typeDescs = intercalate ",\n" $ map typeDesc types
+
+typeDesc t = chompNewline [i|
+    {
+      .name = "#{n}",
+      .hash = #{typeHashByteArray t},
+      .encode = (gen_encode*)encode_#{n},
+      .decode = (gen_decode*)decode_#{n},
+      .min_size = #{S.minSize t},
+      .max_size = #{S.maxSize t},
+    }|]
+  where
+    n = S.typeName t
+-- = intercalate "\n" $ map (\t -> [i|      message_type_#{ln}_#{S.typeName t},|]) types
 
 typeHash :: S.SpType -> String
 typeHash t =
-  [i|  hashtype_t const TYPE_HASH_#{S.typeName t} = { #{hashToBytes (S.spHash t)} };|]
+  [i|  hashtype_t const TYPE_HASH_#{S.typeName t} = #{typeHashByteArray t};|]
+
+typeHashByteArray t = [i|{ #{hashToBytes (S.spHash t)} }|]
 
 
 -- Some utility functions specific to generating C files

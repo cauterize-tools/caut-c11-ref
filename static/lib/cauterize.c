@@ -162,6 +162,26 @@ enum caut_status __caut_encode_null_bytes(struct caut_encode_iter * const iter, 
   return caut_status_ok;
 }
 
+enum caut_status __caut_encode_reserve(P * const iter, size_t reserve_bytes, void ** ptr) {
+  if (reserve_bytes < caut_encode_iter_remaining(iter)) {
+    *ptr = ITER_FOCUS_PTR(iter);
+    return caut_status_ok;
+  } else {
+    return caut_status_would_overflow;
+  }
+}
+
+enum caut_status __caut_encode_raw_bytes(struct caut_encode_iter * const iter, uint8_t const * const bytes, size_t len) {
+  if (caut_encode_iter_remaining(iter) >= len) {
+    memmove(ITER_FOCUS_PTR(iter), bytes, len);
+    caut_encode_iter_advance(iter, len);
+  } else {
+    return caut_status_would_overflow;
+  }
+
+  return caut_status_ok;
+}
+
 enum caut_status __caut_decode_and_ignore_bytes(struct caut_decode_iter * const iter, size_t count) {
   if (caut_decode_iter_remaining(iter) >= count) {
     caut_decode_iter_advance(iter, count);

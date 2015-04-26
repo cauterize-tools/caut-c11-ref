@@ -6,10 +6,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 enum caut_status {
   caut_status_ok,
-  caut_status_invalid_constant,
   caut_status_invalid_tag,
   caut_status_invalid_flags,
   caut_status_invalid_length,
@@ -52,8 +52,21 @@ typedef bool caut_bool;
 #define CAUT_ORDER(A,B) \
   ((A) < (B) ? caut_ord_lt : ((A) > (B) ? caut_ord_gt : caut_ord_eq))
 
-#define FLAG_SET(OBJ,IDX) \
-  (!!((OBJ)->_flags & (1ull << (IDX))))
+struct caut_encode_iter;
+struct caut_decode_iter;
+
+/* Generalized encode and decode function pointers */
+typedef enum caut_status (gen_encode)(struct caut_encode_iter * const iter, void const * const obj);
+typedef enum caut_status (gen_decode)(struct caut_decode_iter * const iter, void const * const obj);
+
+struct caut_type_descriptor {
+  char * name;
+  hashtype_t hash;
+  gen_encode * encode;
+  gen_decode * decode;
+  size_t min_size;
+  size_t max_size;
+};
 
 struct caut_encode_iter {
   uint8_t * buffer;
@@ -95,6 +108,10 @@ enum caut_status __caut_encode_f64(struct caut_encode_iter * const iter, double 
 enum caut_status __caut_encode_bool(struct caut_encode_iter * const iter, bool const * const obj);
 
 enum caut_status __caut_encode_null_bytes(struct caut_encode_iter * const iter, size_t count);
+
+enum caut_status __caut_encode_reserve(struct caut_encode_iter * const iter, size_t reserve_bytes, void ** ptr);
+
+enum caut_status __caut_encode_raw_bytes(struct caut_encode_iter * const iter, uint8_t const * const bytes, size_t len);
 
 
 

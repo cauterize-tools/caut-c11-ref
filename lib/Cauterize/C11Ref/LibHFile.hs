@@ -32,15 +32,22 @@ fromSpec s = [chompNewline [i|
   #define VERSION_#{ln} "#{unpack $ S.specVersion s}"
   #define MIN_SIZE_#{ln} (#{S.minSize libsize})
   #define MAX_SIZE_#{ln} (#{S.maxSize libsize})
+  #define NUM_TYPES_#{ln} (#{length types})
 |]
   , comment "schema hash"
   , [i|  extern hashtype_t const SCHEMA_HASH_#{ln};|]
 
-  , comment "type size information"
-  , unlines (map typeSizeInfo types)
+  , comment "type descriptors extern"
+  , chompNewline [i|
+  typedef struct caut_type_descriptor caut_type_descriptors_#{ln}_t[NUM_TYPES_#{ln}];
+  extern const caut_type_descriptors_#{ln}_t type_descriptors;
+|]
 
-  , comment "type hash externs"
-  , unlines (map typeHash types)
+  , comment "type indicies"
+  , [i|
+  enum type_index_#{ln} {
+#{typeIndicies}
+  };|]
 
   , comment "forward declarations"
   , unlines (mapMaybe typeForwardDecl types)
@@ -63,13 +70,11 @@ fromSpec s = [chompNewline [i|
   };
 
   struct message_#{ln} {
-    enum message_type_#{ln} {
-#{typeEnums}
-    } _type;
+    enum type_index_#{ln} _type;
 
     union {
 #{typeUnionFields}
-    };
+    } _data;
   };
 
   enum caut_status encode_message_#{ln}(
@@ -100,7 +105,9 @@ fromSpec s = [chompNewline [i|
     libsize = S.specSize s
     ln = unpack $ S.specName s
     types = S.specTypes s
-    typeEnums = intercalate "\n" $ map (\t -> [i|      message_type_#{ln}_#{S.typeName t},|]) types
+    typeIndicies =
+      let withIndex = zip [(0 :: Integer)..] types
+      in intercalate "\n" $ map (\(ix,t) -> [i|    type_index_#{ln}_#{S.typeName t} = #{ix},|]) withIndex
     typeUnionFields = intercalate "\n" $ map (\t -> [i|      #{t2decl t} msg_#{S.typeName t};|]) types
 
     -- Names to how you delcare that name
@@ -119,11 +126,6 @@ typeSizeInfo t = chompNewline [i|
     tn   = S.typeName t
     minS = S.minSize t
     maxS = S.maxSize t
-
-typeHash :: S.SpType -> String
-typeHash t = [i|  extern hashtype_t const TYPE_HASH_#{n};|] -- two spaces to line up with the 'unindent' call in the end
-  where
-    n = S.typeName t
 
 typeForwardDecl :: S.SpType -> Maybe String
 typeForwardDecl t = fmap ("  " ++) (go t)
