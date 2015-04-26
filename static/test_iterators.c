@@ -1,11 +1,11 @@
 #include "greatest.h"
 #include "lib/cauterize.h"
 
-TEST pack_iter_init__can_be_initialized(void) {
-  struct caut_pack_iter iter;
+TEST encode_iter_init__can_be_initialized(void) {
+  struct caut_encode_iter iter;
   uint8_t buffer[128];
 
-  caut_pack_iter_init(&iter, buffer, ARR_LEN(buffer));
+  caut_encode_iter_init(&iter, buffer, ARR_LEN(buffer));
 
   ASSERT_EQ(buffer, iter.buffer);
   ASSERT_EQ(ARR_LEN(buffer), iter.length);
@@ -14,36 +14,36 @@ TEST pack_iter_init__can_be_initialized(void) {
   PASS();
 }
 
-TEST pack_iter_remaining__is_correct(void) {
-  struct caut_pack_iter iter;
+TEST encode_iter_remaining__is_correct(void) {
+  struct caut_encode_iter iter;
   uint8_t buffer[128];
   uint8_t x = 5;
 
-  caut_pack_iter_init(&iter, buffer, ARR_LEN(buffer));
-  ASSERT_EQ(sizeof(buffer), caut_pack_iter_remaining(&iter));
+  caut_encode_iter_init(&iter, buffer, ARR_LEN(buffer));
+  ASSERT_EQ(sizeof(buffer), caut_encode_iter_remaining(&iter));
 
-  ASSERT_EQ(caut_status_ok, __caut_pack_u8(&iter, &x));
-  ASSERT_EQ(sizeof(buffer) - 1, caut_pack_iter_remaining(&iter));
-
-  PASS();
-}
-
-TEST pack_iter_buffer__is_the_buffer(void) {
-  struct caut_pack_iter iter;
-  uint8_t buffer[128];
-
-  caut_pack_iter_init(&iter, buffer, ARR_LEN(buffer));
-
-  ASSERT_EQ(buffer, caut_pack_iter_buffer(&iter));
+  ASSERT_EQ(caut_status_ok, __caut_encode_u8(&iter, &x));
+  ASSERT_EQ(sizeof(buffer) - 1, caut_encode_iter_remaining(&iter));
 
   PASS();
 }
 
-TEST unpack_iter_init__can_be_initialized(void) {
-  struct caut_unpack_iter iter;
+TEST encode_iter_buffer__is_the_buffer(void) {
+  struct caut_encode_iter iter;
   uint8_t buffer[128];
 
-  caut_unpack_iter_init(&iter, buffer, ARR_LEN(buffer));
+  caut_encode_iter_init(&iter, buffer, ARR_LEN(buffer));
+
+  ASSERT_EQ(buffer, caut_encode_iter_buffer(&iter));
+
+  PASS();
+}
+
+TEST decode_iter_init__can_be_initialized(void) {
+  struct caut_decode_iter iter;
+  uint8_t buffer[128];
+
+  caut_decode_iter_init(&iter, buffer, ARR_LEN(buffer));
 
   ASSERT_EQ(buffer, iter.buffer);
   ASSERT_EQ(ARR_LEN(buffer), iter.length);
@@ -52,37 +52,39 @@ TEST unpack_iter_init__can_be_initialized(void) {
   PASS();
 }
 
-TEST unpack_iter_remaining__is_correct(void) {
-  struct caut_unpack_iter iter;
+TEST decode_iter_remaining__is_correct(void) {
+  struct caut_decode_iter iter;
   uint8_t buffer[128];
   uint8_t x;
 
-  caut_unpack_iter_init(&iter, buffer, ARR_LEN(buffer));
-  ASSERT_EQ(sizeof(buffer), caut_unpack_iter_remaining(&iter));
+  caut_decode_iter_init(&iter, buffer, ARR_LEN(buffer));
+  ASSERT_EQ(sizeof(buffer), caut_decode_iter_remaining(&iter));
 
-  ASSERT_EQ(caut_status_ok, __caut_unpack_u8(&iter, &x));
-  ASSERT_EQ(sizeof(buffer) - 1, caut_unpack_iter_remaining(&iter));
-  
+  ASSERT_EQ(caut_status_ok, __caut_decode_u8(&iter, &x));
+  ASSERT_EQ(sizeof(buffer) - 1, caut_decode_iter_remaining(&iter));
+
   PASS();
 }
 
-TEST unpack_iter_buffer__is_the_buffer(void) {
-  struct caut_unpack_iter iter;
+TEST decode_iter_buffer__is_the_buffer(void) {
+  struct caut_decode_iter iter;
   uint8_t buffer[128];
 
-  caut_unpack_iter_init(&iter, buffer, ARR_LEN(buffer));
-  ASSERT_EQ(buffer, caut_unpack_iter_buffer(&iter));
+  caut_decode_iter_init(&iter, buffer, ARR_LEN(buffer));
+  ASSERT_EQ(buffer, caut_decode_iter_buffer(&iter));
 
   PASS();
 }
 
 
-SUITE(iterator_suite) {
-  RUN_TEST(pack_iter_init__can_be_initialized);
-  RUN_TEST(pack_iter_remaining__is_correct);
-  RUN_TEST(pack_iter_buffer__is_the_buffer);
+SUITE(iterator_suite);
 
-  RUN_TEST(unpack_iter_init__can_be_initialized);
-  RUN_TEST(unpack_iter_remaining__is_correct);
-  RUN_TEST(unpack_iter_buffer__is_the_buffer);
+SUITE(iterator_suite) {
+  RUN_TEST(encode_iter_init__can_be_initialized);
+  RUN_TEST(encode_iter_remaining__is_correct);
+  RUN_TEST(encode_iter_buffer__is_the_buffer);
+
+  RUN_TEST(decode_iter_init__can_be_initialized);
+  RUN_TEST(decode_iter_remaining__is_correct);
+  RUN_TEST(decode_iter_buffer__is_the_buffer);
 }

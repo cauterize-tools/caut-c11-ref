@@ -3,17 +3,17 @@
 
 TEST identity(void) {
   uint8_t buffer[64];
-  struct caut_pack_iter pack;
-  struct caut_unpack_iter unpack;
+  struct caut_encode_iter encode;
+  struct caut_decode_iter decode;
 
 #define ID_TYPE(TYPE, REPR, INIT) \
   { \
-    caut_pack_iter_init(&pack, buffer, sizeof(buffer)); \
-    caut_unpack_iter_init(&unpack, buffer, sizeof(buffer)); \
+    caut_encode_iter_init(&encode, buffer, sizeof(buffer)); \
+    caut_decode_iter_init(&decode, buffer, sizeof(buffer)); \
     REPR _x = (INIT); \
-    ASSERT_EQ(caut_status_ok, __caut_pack_##TYPE(&pack, &_x)); \
+    ASSERT_EQ(caut_status_ok, __caut_encode_##TYPE(&encode, &_x)); \
     memset(&_x, 0, sizeof(_x)); \
-    ASSERT_EQ(caut_status_ok, __caut_unpack_##TYPE(&unpack, &_x)); \
+    ASSERT_EQ(caut_status_ok, __caut_decode_##TYPE(&decode, &_x)); \
     ASSERT_EQm(#TYPE " isn't ID.", (INIT), _x); \
   }
 
@@ -27,10 +27,10 @@ TEST identity(void) {
   ID_TYPE(u32, uint32_t, 12);
   ID_TYPE(u64, uint64_t, 13);
 
-  ID_TYPE(ieee754s, float, 599.0);
-  ID_TYPE(ieee754d, double, 601.2);
+  ID_TYPE(f32, float, 599.0);
+  ID_TYPE(f64, double, 601.2);
 
-  ID_TYPE(bool, uint8_t, true);
+  ID_TYPE(bool, bool, true);
 
 #undef ID_TYPE
 
@@ -39,214 +39,216 @@ TEST identity(void) {
 
 TEST iteration(void) {
   uint8_t buffer[64];
-  struct caut_pack_iter pack;
-  struct caut_unpack_iter unpack;
+  struct caut_encode_iter encode;
+  struct caut_decode_iter decode;
 
-  /* Check that packing advances the iterator. */
-#define PACK_ITER_TYPE(TYPE, REPR) \
+  /* Check that encodeing advances the iterator. */
+#define ENCODE_ITER_TYPE(TYPE, REPR) \
   { \
-    caut_pack_iter_init(&pack, buffer, sizeof(buffer)); \
+    caut_encode_iter_init(&encode, buffer, sizeof(buffer)); \
     REPR _x; \
-    ASSERT_EQ(sizeof(buffer), caut_pack_iter_remaining(&pack)); \
-    ASSERT_EQ(caut_status_ok, __caut_pack_##TYPE(&pack, &_x)); \
-    ASSERT_EQ(sizeof(buffer) - sizeof(_x), caut_pack_iter_remaining(&pack)); \
+    ASSERT_EQ(sizeof(buffer), caut_encode_iter_remaining(&encode)); \
+    ASSERT_EQ(caut_status_ok, __caut_encode_##TYPE(&encode, &_x)); \
+    ASSERT_EQ(sizeof(buffer) - sizeof(_x), caut_encode_iter_remaining(&encode)); \
   }
 
-  PACK_ITER_TYPE(s8,  int8_t);
-  PACK_ITER_TYPE(s16, int16_t);
-  PACK_ITER_TYPE(s32, int32_t);
-  PACK_ITER_TYPE(s64, int64_t);
+  ENCODE_ITER_TYPE(s8,  int8_t);
+  ENCODE_ITER_TYPE(s16, int16_t);
+  ENCODE_ITER_TYPE(s32, int32_t);
+  ENCODE_ITER_TYPE(s64, int64_t);
 
-  PACK_ITER_TYPE(u8,  uint8_t);
-  PACK_ITER_TYPE(u16, uint16_t);
-  PACK_ITER_TYPE(u32, uint32_t);
-  PACK_ITER_TYPE(u64, uint64_t);
+  ENCODE_ITER_TYPE(u8,  uint8_t);
+  ENCODE_ITER_TYPE(u16, uint16_t);
+  ENCODE_ITER_TYPE(u32, uint32_t);
+  ENCODE_ITER_TYPE(u64, uint64_t);
 
-  PACK_ITER_TYPE(ieee754s, float);
-  PACK_ITER_TYPE(ieee754d, double);
+  ENCODE_ITER_TYPE(f32, float);
+  ENCODE_ITER_TYPE(f64, double);
 
-  PACK_ITER_TYPE(bool, uint8_t);
+  ENCODE_ITER_TYPE(bool, bool);
 
-#undef PACK_ITER_TYPE
+#undef ENCODE_ITER_TYPE
 
-  /* Check that unpacking advances the iterator. */
-#define UNPACK_ITER_TYPE(TYPE, REPR) \
+  /* Check that decodeing advances the iterator. */
+#define DECODE_ITER_TYPE(TYPE, REPR) \
   { \
-    caut_unpack_iter_init(&unpack, buffer, sizeof(buffer)); \
+    caut_decode_iter_init(&decode, buffer, sizeof(buffer)); \
     REPR _x; \
-    ASSERT_EQ(sizeof(buffer), caut_unpack_iter_remaining(&unpack)); \
-    ASSERT_EQ(caut_status_ok, __caut_unpack_##TYPE(&unpack, &_x)); \
-    ASSERT_EQ(sizeof(buffer) - sizeof(_x), caut_unpack_iter_remaining(&unpack)); \
+    ASSERT_EQ(sizeof(buffer), caut_decode_iter_remaining(&decode)); \
+    ASSERT_EQ(caut_status_ok, __caut_decode_##TYPE(&decode, &_x)); \
+    ASSERT_EQ(sizeof(buffer) - sizeof(_x), caut_decode_iter_remaining(&decode)); \
   }
 
-  UNPACK_ITER_TYPE(s8,  int8_t);
-  UNPACK_ITER_TYPE(s16, int16_t);
-  UNPACK_ITER_TYPE(s32, int32_t);
-  UNPACK_ITER_TYPE(s64, int64_t);
+  DECODE_ITER_TYPE(s8,  int8_t);
+  DECODE_ITER_TYPE(s16, int16_t);
+  DECODE_ITER_TYPE(s32, int32_t);
+  DECODE_ITER_TYPE(s64, int64_t);
 
-  UNPACK_ITER_TYPE(u8,  uint8_t);
-  UNPACK_ITER_TYPE(u16, uint16_t);
-  UNPACK_ITER_TYPE(u32, uint32_t);
-  UNPACK_ITER_TYPE(u64, uint64_t);
+  DECODE_ITER_TYPE(u8,  uint8_t);
+  DECODE_ITER_TYPE(u16, uint16_t);
+  DECODE_ITER_TYPE(u32, uint32_t);
+  DECODE_ITER_TYPE(u64, uint64_t);
 
-  UNPACK_ITER_TYPE(ieee754s, float);
-  UNPACK_ITER_TYPE(ieee754d, double);
+  DECODE_ITER_TYPE(f32, float);
+  DECODE_ITER_TYPE(f64, double);
 
-  UNPACK_ITER_TYPE(bool, uint8_t);
+  DECODE_ITER_TYPE(bool, bool);
 
-#undef UNPACK_ITER_TYPE
+#undef DECODE_ITER_TYPE
 
 
   PASS();
 }
 
 TEST overflow(void) {
-  struct caut_pack_iter pack;
+  struct caut_encode_iter encode;
 
-#define PACK_OVERFLOW(TYPE, REPR) \
+#define ENCODE_OVERFLOW(TYPE, REPR) \
   { \
     uint8_t buffer[sizeof(REPR) - 1]; \
-    caut_pack_iter_init(&pack, buffer, sizeof(buffer)); \
+    caut_encode_iter_init(&encode, buffer, sizeof(buffer)); \
     REPR _x; \
-    ASSERT_EQ(caut_status_would_overflow, __caut_pack_##TYPE(&pack, &_x)); \
-    ASSERT_EQ(sizeof(buffer), caut_pack_iter_remaining(&pack)); \
+    ASSERT_EQ(caut_status_would_overflow, __caut_encode_##TYPE(&encode, &_x)); \
+    ASSERT_EQ(sizeof(buffer), caut_encode_iter_remaining(&encode)); \
   }
 
-  PACK_OVERFLOW(s8,  int8_t);
-  PACK_OVERFLOW(s16, int16_t);
-  PACK_OVERFLOW(s32, int32_t);
-  PACK_OVERFLOW(s64, int64_t);
+  ENCODE_OVERFLOW(s8,  int8_t);
+  ENCODE_OVERFLOW(s16, int16_t);
+  ENCODE_OVERFLOW(s32, int32_t);
+  ENCODE_OVERFLOW(s64, int64_t);
 
-  PACK_OVERFLOW(u8,  uint8_t);
-  PACK_OVERFLOW(u16, uint16_t);
-  PACK_OVERFLOW(u32, uint32_t);
-  PACK_OVERFLOW(u64, uint64_t);
+  ENCODE_OVERFLOW(u8,  uint8_t);
+  ENCODE_OVERFLOW(u16, uint16_t);
+  ENCODE_OVERFLOW(u32, uint32_t);
+  ENCODE_OVERFLOW(u64, uint64_t);
 
-  PACK_OVERFLOW(ieee754s, float);
-  PACK_OVERFLOW(ieee754d, double);
+  ENCODE_OVERFLOW(f32, float);
+  ENCODE_OVERFLOW(f64, double);
 
-  PACK_OVERFLOW(bool, uint8_t);
+  ENCODE_OVERFLOW(bool, bool);
 
-#undef PACK_OVERFLOW
+#undef ENCODE_OVERFLOW
 
   /* Ensure exact sizing still works. */
-#define PACK_EXACT(TYPE, REPR) \
+#define ENCODE_EXACT(TYPE, REPR) \
   { \
     uint8_t buffer[sizeof(REPR)]; \
-    caut_pack_iter_init(&pack, buffer, sizeof(buffer)); \
+    caut_encode_iter_init(&encode, buffer, sizeof(buffer)); \
     REPR _x; \
-    ASSERT_EQ(caut_status_ok, __caut_pack_##TYPE(&pack, &_x)); \
-    ASSERT_EQ(0, caut_pack_iter_remaining(&pack)); \
+    ASSERT_EQ(caut_status_ok, __caut_encode_##TYPE(&encode, &_x)); \
+    ASSERT_EQ(0, caut_encode_iter_remaining(&encode)); \
   }
 
-  PACK_EXACT(s8,  int8_t);
-  PACK_EXACT(s16, int16_t);
-  PACK_EXACT(s32, int32_t);
-  PACK_EXACT(s64, int64_t);
+  ENCODE_EXACT(s8,  int8_t);
+  ENCODE_EXACT(s16, int16_t);
+  ENCODE_EXACT(s32, int32_t);
+  ENCODE_EXACT(s64, int64_t);
 
-  PACK_EXACT(u8,  uint8_t);
-  PACK_EXACT(u16, uint16_t);
-  PACK_EXACT(u32, uint32_t);
-  PACK_EXACT(u64, uint64_t);
+  ENCODE_EXACT(u8,  uint8_t);
+  ENCODE_EXACT(u16, uint16_t);
+  ENCODE_EXACT(u32, uint32_t);
+  ENCODE_EXACT(u64, uint64_t);
 
-  PACK_EXACT(ieee754s, float);
-  PACK_EXACT(ieee754d, double);
+  ENCODE_EXACT(f32, float);
+  ENCODE_EXACT(f64, double);
 
-  PACK_EXACT(bool, uint8_t);
+  ENCODE_EXACT(bool, bool);
 
-#undef PACK_EXACT
+#undef ENCODE_EXACT
 
   PASS();
 }
 
 TEST underflow(void) {
-  struct caut_unpack_iter unpack;
+  struct caut_decode_iter decode;
 
-#define UNPACK_UNDERFLOW(TYPE, REPR) \
+#define DECODE_UNDERFLOW(TYPE, REPR) \
   { \
     uint8_t buffer[sizeof(REPR) - 1]; \
-    caut_unpack_iter_init(&unpack, buffer, sizeof(buffer)); \
+    caut_decode_iter_init(&decode, buffer, sizeof(buffer)); \
     REPR _x; \
-    ASSERT_EQ(caut_status_would_underflow, __caut_unpack_##TYPE(&unpack, &_x)); \
-    ASSERT_EQ(sizeof(buffer), caut_unpack_iter_remaining(&unpack)); \
+    ASSERT_EQ(caut_status_would_underflow, __caut_decode_##TYPE(&decode, &_x)); \
+    ASSERT_EQ(sizeof(buffer), caut_decode_iter_remaining(&decode)); \
   }
 
-  UNPACK_UNDERFLOW(s8,  int8_t);
-  UNPACK_UNDERFLOW(s16, int16_t);
-  UNPACK_UNDERFLOW(s32, int32_t);
-  UNPACK_UNDERFLOW(s64, int64_t);
+  DECODE_UNDERFLOW(s8,  int8_t);
+  DECODE_UNDERFLOW(s16, int16_t);
+  DECODE_UNDERFLOW(s32, int32_t);
+  DECODE_UNDERFLOW(s64, int64_t);
 
-  UNPACK_UNDERFLOW(u8,  uint8_t);
-  UNPACK_UNDERFLOW(u16, uint16_t);
-  UNPACK_UNDERFLOW(u32, uint32_t);
-  UNPACK_UNDERFLOW(u64, uint64_t);
+  DECODE_UNDERFLOW(u8,  uint8_t);
+  DECODE_UNDERFLOW(u16, uint16_t);
+  DECODE_UNDERFLOW(u32, uint32_t);
+  DECODE_UNDERFLOW(u64, uint64_t);
 
-  UNPACK_UNDERFLOW(ieee754s, float);
-  UNPACK_UNDERFLOW(ieee754d, double);
+  DECODE_UNDERFLOW(f32, float);
+  DECODE_UNDERFLOW(f64, double);
 
-  UNPACK_UNDERFLOW(bool, uint8_t);
+  DECODE_UNDERFLOW(bool, bool);
 
-#undef UNPACK_UNDERFLOW
+#undef DECODE_UNDERFLOW
 
   /* Ensure exact sizing still works. */
-#define UNPACK_EXACT(TYPE, REPR) \
+#define DECODE_EXACT(TYPE, REPR) \
   { \
     uint8_t buffer[sizeof(REPR)]; \
-    caut_unpack_iter_init(&unpack, buffer, sizeof(buffer)); \
+    caut_decode_iter_init(&decode, buffer, sizeof(buffer)); \
     REPR _x; \
-    ASSERT_EQ(caut_status_ok, __caut_unpack_##TYPE(&unpack, &_x)); \
-    ASSERT_EQ(0, caut_unpack_iter_remaining(&unpack)); \
+    ASSERT_EQ(caut_status_ok, __caut_decode_##TYPE(&decode, &_x)); \
+    ASSERT_EQ(0, caut_decode_iter_remaining(&decode)); \
   }
 
-  UNPACK_EXACT(s8,  int8_t);
-  UNPACK_EXACT(s16, int16_t);
-  UNPACK_EXACT(s32, int32_t);
-  UNPACK_EXACT(s64, int64_t);
+  DECODE_EXACT(s8,  int8_t);
+  DECODE_EXACT(s16, int16_t);
+  DECODE_EXACT(s32, int32_t);
+  DECODE_EXACT(s64, int64_t);
 
-  UNPACK_EXACT(u8,  uint8_t);
-  UNPACK_EXACT(u16, uint16_t);
-  UNPACK_EXACT(u32, uint32_t);
-  UNPACK_EXACT(u64, uint64_t);
+  DECODE_EXACT(u8,  uint8_t);
+  DECODE_EXACT(u16, uint16_t);
+  DECODE_EXACT(u32, uint32_t);
+  DECODE_EXACT(u64, uint64_t);
 
-  UNPACK_EXACT(ieee754s, float);
-  UNPACK_EXACT(ieee754d, double);
+  DECODE_EXACT(f32, float);
+  DECODE_EXACT(f64, double);
 
-  UNPACK_EXACT(bool, uint8_t);
+  DECODE_EXACT(bool, bool);
 
-#undef UNPACK_EXACT
+#undef DECODE_EXACT
 
   PASS();
 }
 
 TEST null_bytes(void) {
-  struct caut_pack_iter pack;
-  struct caut_unpack_iter unpack;
+  struct caut_encode_iter encode;
+  struct caut_decode_iter decode;
   uint8_t buffer[81];
 
-  caut_pack_iter_init(&pack, buffer, sizeof(buffer));
-  caut_unpack_iter_init(&unpack, buffer, sizeof(buffer));
+  caut_encode_iter_init(&encode, buffer, sizeof(buffer));
+  caut_decode_iter_init(&decode, buffer, sizeof(buffer));
 
   /* Pack */
-  ASSERT_EQ(caut_status_ok, __caut_pack_null_bytes(&pack, 40));
-  ASSERT_EQ(sizeof(buffer) - 40, caut_pack_iter_remaining(&pack));
-  ASSERT_EQ(caut_status_ok, __caut_pack_null_bytes(&pack, 40));
-  ASSERT_EQ(sizeof(buffer) - 40 - 40, caut_pack_iter_remaining(&pack));
+  ASSERT_EQ(caut_status_ok, __caut_encode_null_bytes(&encode, 40));
+  ASSERT_EQ(sizeof(buffer) - 40, caut_encode_iter_remaining(&encode));
+  ASSERT_EQ(caut_status_ok, __caut_encode_null_bytes(&encode, 40));
+  ASSERT_EQ(sizeof(buffer) - 40 - 40, caut_encode_iter_remaining(&encode));
 
-  ASSERT_EQ(caut_status_would_overflow, __caut_pack_null_bytes(&pack, 2));
-  ASSERT_EQ(sizeof(buffer) - 40 - 40, caut_pack_iter_remaining(&pack));
+  ASSERT_EQ(caut_status_would_overflow, __caut_encode_null_bytes(&encode, 2));
+  ASSERT_EQ(sizeof(buffer) - 40 - 40, caut_encode_iter_remaining(&encode));
 
-  /* Unpack */
-  ASSERT_EQ(caut_status_ok, __caut_unpack_and_ignore_bytes(&unpack, 40));
-  ASSERT_EQ(sizeof(buffer) - 40, caut_unpack_iter_remaining(&unpack));
-  ASSERT_EQ(caut_status_ok, __caut_unpack_and_ignore_bytes(&unpack, 40));
-  ASSERT_EQ(sizeof(buffer) - 40 - 40, caut_unpack_iter_remaining(&unpack));
+  /* Unencode */
+  ASSERT_EQ(caut_status_ok, __caut_decode_and_ignore_bytes(&decode, 40));
+  ASSERT_EQ(sizeof(buffer) - 40, caut_decode_iter_remaining(&decode));
+  ASSERT_EQ(caut_status_ok, __caut_decode_and_ignore_bytes(&decode, 40));
+  ASSERT_EQ(sizeof(buffer) - 40 - 40, caut_decode_iter_remaining(&decode));
 
-  ASSERT_EQ(caut_status_would_underflow, __caut_unpack_and_ignore_bytes(&unpack, 2));
-  ASSERT_EQ(sizeof(buffer) - 40 - 40, caut_unpack_iter_remaining(&unpack));
+  ASSERT_EQ(caut_status_would_underflow, __caut_decode_and_ignore_bytes(&decode, 2));
+  ASSERT_EQ(sizeof(buffer) - 40 - 40, caut_decode_iter_remaining(&decode));
 
   PASS();
 }
 
+
+SUITE(serializer_suite);
 
 SUITE(serializer_suite) {
   RUN_TEST(identity);
