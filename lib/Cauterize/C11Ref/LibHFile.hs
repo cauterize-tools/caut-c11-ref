@@ -118,15 +118,6 @@ fromSpec s = [chompNewline [i|
     luDecl n = fromMaybe (error $ "Invalid name: " ++ unpack n ++ ".")
                          (M.lookup n n2declMap)
 
-typeSizeInfo :: S.SpType -> String
-typeSizeInfo t = chompNewline [i|
-  #define MIN_SIZE_#{tn} (#{minS})
-  #define MAX_SIZE_#{tn} (#{maxS})|]
-  where
-    tn   = S.typeName t
-    minS = S.minSize t
-    maxS = S.maxSize t
-
 typeForwardDecl :: S.SpType -> Maybe String
 typeForwardDecl t = fmap ("  " ++) (go t)
   where

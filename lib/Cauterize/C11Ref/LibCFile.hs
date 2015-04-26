@@ -63,6 +63,7 @@ fromSpec s = [chompNewline [i|
     blankLine = "\n"
     typeDescs = intercalate ",\n" $ map typeDesc types
 
+typeDesc :: S.SpType -> String
 typeDesc t = chompNewline [i|
     {
       .name = "#{n}",
@@ -74,12 +75,8 @@ typeDesc t = chompNewline [i|
     }|]
   where
     n = S.typeName t
--- = intercalate "\n" $ map (\t -> [i|      message_type_#{ln}_#{S.typeName t},|]) types
 
-typeHash :: S.SpType -> String
-typeHash t =
-  [i|  hashtype_t const TYPE_HASH_#{S.typeName t} = #{typeHashByteArray t};|]
-
+typeHashByteArray :: S.SpType -> String
 typeHashByteArray t = [i|{ #{hashToBytes (S.spHash t)} }|]
 
 
