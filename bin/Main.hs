@@ -2,12 +2,15 @@ module Main where
 
 import qualified Cauterize.Specification as Sp
 
-import Cauterize.C11Ref.Generate
 import Cauterize.C11Ref.Options
 import Cauterize.C11Ref.Static
+import Cauterize.C11Ref.LibHFile
+import Cauterize.C11Ref.LibCFile
 
 import Data.Text.Lazy (unpack)
 import System.Directory
+import System.FilePath.Posix
+import qualified Data.ByteString as B
 
 main :: IO ()
 main = runWithOptions caut2c11
@@ -19,7 +22,6 @@ caut2c11 (Caut2C11Opts { specFile = sf, outputDirectory = od }) = createGuard od
 
   copyStaticFilesTo od
   generateDynamicFiles od baseName spec
-
   where
 
     loadSpec :: IO Sp.Spec
@@ -39,3 +41,13 @@ createGuard out go = do
     else if de
           then go
           else createDirectory out >> go
+
+copyStaticFilesTo :: FilePath -> IO ()
+copyStaticFilesTo path = mapM_ go allFiles
+  where
+    go (p, d) = B.writeFile (path `combine` p) d
+
+generateDynamicFiles :: FilePath -> String -> Sp.Spec -> IO ()
+generateDynamicFiles path baseName spec = do
+  writeFile (path `combine` (baseName ++ ".h")) (hFileFromSpec spec)
+  writeFile (path `combine` (baseName ++ ".c")) (cFileFromSpec spec)

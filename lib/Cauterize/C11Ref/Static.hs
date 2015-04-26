@@ -1,8 +1,9 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Cauterize.C11Ref.Static where
+module Cauterize.C11Ref.Static
+  ( allFiles
+  ) where
 
 import Data.FileEmbed
-import System.FilePath.Posix
 import qualified Data.ByteString as B
 
 cauterizeDotH :: (FilePath, B.ByteString)
@@ -16,8 +17,3 @@ allFiles =
   [ cauterizeDotH
   , cauterizeDotC
   ]
-
-copyStaticFilesTo :: FilePath -> IO ()
-copyStaticFilesTo path = mapM_ go allFiles
-  where
-    go (p, d) = B.writeFile (path `combine` p) d
