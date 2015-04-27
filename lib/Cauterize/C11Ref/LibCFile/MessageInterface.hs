@@ -28,7 +28,7 @@ messageInterfaceFromSpec s = chompNewline [i|
   }
 
   R decode_message_header_#{ln}(DI * const _iter, struct message_header_#{ln} * const _header) {
-    #{lenBi} length = 0;
+    #{lenDecl} length = 0;
     STATUS_CHECK(__caut_decode_#{lenBi}(_iter, &length));
     _header->length = length;
     STATUS_CHECK(__caut_decode_raw_bytes(_iter, _header->tag, sizeof(_header->tag)));
@@ -42,6 +42,7 @@ messageInterfaceFromSpec s = chompNewline [i|
     for (size_t i = 0; i < ARR_LEN(type_descriptors); i++) {
       if (0 == memcmp(_header->tag, type_descriptors[i].hash, TYPE_TAG_WIDTH_#{ln})) {
         desc = &type_descriptors[i];
+        _obj->_type = (enum type_index_#{ln})i;
         break;
       }
     }
