@@ -191,7 +191,7 @@ defRecord n refDecl fields = chompNewline [i|
 |]
   where
     defField S.Field { S.fName = fn, S.fRef = fr} = [i|#{refDecl fr} #{fn};|]
-    defField S.EmptyField { S.fName = fn } = [i|/* no data for field #{fn} */|]
+    defField f@S.EmptyField {} = emptyFieldComment f
     fdefs = intercalate "\n    " $ map defField fields
 
 defCombination :: String -> (S.Name -> String) -> [S.Field] -> S.BuiltIn -> String
@@ -205,9 +205,9 @@ defCombination n refDecl fields flagsRepr = chompNewline [i|
   where
     flagsMask = case length fields of
                   0 -> "0"
-                  l -> map toUpper $ showHex (((2 :: Integer) ^ (l - 1)) - 1) ""
+                  l -> map toUpper $ showHex (((2 :: Integer) ^ l) - 1) ""
     defField S.Field { S.fName = fn, S.fRef = fr} = [i|#{refDecl fr} #{fn};|]
-    defField S.EmptyField { S.fName = fn } = [i|/* no data for field #{fn} */|]
+    defField f@S.EmptyField {} = emptyFieldComment f
     fdefs = intercalate "\n    " $ map defField fields
 
 defUnion :: String -> (S.Name -> String) -> [S.Field] -> String
@@ -225,8 +225,12 @@ defUnion n refDecl fields = chompNewline [i|
 |]
   where
     defField S.Field { S.fName = fn, S.fRef = fr} = [i|#{refDecl fr} #{fn};|]
-    defField S.EmptyField { S.fName = fn } = [i|/* no data for field #{fn} */|]
+    defField f@S.EmptyField {} = emptyFieldComment f
     defTag f = [i|#{n}_tag_#{S.fName f} = #{S.fIndex f},|]
     fdefs = intercalate "\n      " $ map defField fields
     tagDefs = intercalate "\n      " $ map defTag fields
     numFields = length fields
+
+emptyFieldComment :: S.Field -> String
+emptyFieldComment S.EmptyField { S.fName = fn, S.fIndex = ix } = [i|/* no data for field #{fn} with index #{ix} */|]
+emptyFieldComment _ = error "emptyFieldComment: invalid for all but EmptyField"
