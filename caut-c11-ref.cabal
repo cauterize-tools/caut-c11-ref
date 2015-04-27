@@ -23,6 +23,7 @@ library
                        Cauterize.C11Ref.LibCFile.Decoders,
                        Cauterize.C11Ref.LibCFile.MessageInterface,
                        Cauterize.C11Ref.LibHFile,
+                       Cauterize.C11Ref.Makefile,
                        Cauterize.C11Ref.Static,
                        Cauterize.C11Ref.TestClient,
                        Cauterize.C11Ref.Util
