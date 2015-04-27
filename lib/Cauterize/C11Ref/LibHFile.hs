@@ -36,18 +36,14 @@ fromSpec s = [chompNewline [i|
 |]
   , comment "schema hash"
   , [i|  extern hashtype_t const SCHEMA_HASH_#{ln};|]
-
-  , comment "type descriptors extern"
-  , chompNewline [i|
-  typedef struct caut_type_descriptor caut_type_descriptors_#{ln}_t[NUM_TYPES_#{ln}];
-  extern const caut_type_descriptors_#{ln}_t type_descriptors;
-|]
+  , blankLine
 
   , comment "type indicies"
-  , [i|
+  , chompNewline [i|
   enum type_index_#{ln} {
 #{typeIndicies}
-  };|]
+  };
+|]
 
   , comment "forward declarations"
   , unlines (mapMaybe typeForwardDecl types)
@@ -63,6 +59,10 @@ fromSpec s = [chompNewline [i|
   #define MESSAGE_OVERHEAD_#{ln} (TYPE_TAG_WIDTH_#{ln} + LENGTH_WIDTH_#{ln})
   #define MESSAGE_MAX_SIZE_#{ln} (MESSAGE_OVERHEAD_#{ln} + MAX_SIZE_#{ln})
   #define MESSAGE_MIN_SIZE_#{ln} (MESSAGE_OVERHEAD_#{ln} + MIN_SIZE_#{ln})
+
+  /* type descriptors extern */
+  typedef struct caut_type_descriptor caut_type_descriptors_#{ln}_t[NUM_TYPES_#{ln}];
+  extern const caut_type_descriptors_#{ln}_t type_descriptors;
 
   struct message_header_#{ln} {
     size_t length;
@@ -101,7 +101,7 @@ fromSpec s = [chompNewline [i|
   ]
   where
     guardSym = [i|_CAUTERIZE_C11REF_#{ln}_|]
-    blankLine = "  \n"
+    blankLine = "\n"
     libsize = S.specSize s
     ln = unpack $ S.specName s
     types = S.specTypes s
@@ -122,7 +122,7 @@ typeForwardDecl :: S.SpType -> Maybe String
 typeForwardDecl t = fmap ("  " ++) (go t)
   where
     n = S.typeName t
-    structish flavor = Just [i|struct #{n}; /* #{flavor} */ |]
+    structish flavor = Just [i|struct #{n}; /* #{flavor} */|]
     go S.BuiltIn { S.unBuiltIn = S.TBuiltIn { S.unTBuiltIn = b } } =
       case b of
         S.BIbool -> Nothing -- We don't want to redefine 'bool'. stdbool.h defines this for us.
