@@ -71,10 +71,7 @@ fromSpec s = [chompNewline [i|
 
   struct message_#{ln} {
     enum type_index_#{ln} _type;
-
-    union {
-#{typeUnionFields}
-    } _data;
+#{unionDecl}
   };
 
   enum caut_status encode_message_#{ln}(
@@ -109,6 +106,15 @@ fromSpec s = [chompNewline [i|
       let withIndex = zip [(0 :: Integer)..] types
       in intercalate "\n" $ map (\(ix,t) -> [i|    type_index_#{ln}_#{S.typeName t} = #{ix},|]) withIndex
     typeUnionFields = intercalate "\n" $ map (\t -> [i|      #{t2decl t} msg_#{S.typeName t};|]) types
+
+    unionDecl =
+      if length types <= 0
+        then ""
+        else [i|
+    union {
+#{typeUnionFields}
+    } _data;
+|]
 
     -- Names to how you delcare that name
     n2declMap = let s' = S.specTypes s
@@ -218,9 +224,7 @@ defUnion n refDecl fields = chompNewline [i|
       #{tagDefs}
     } _tag;
 
-    union {
-      #{fdefs}
-    };
+#{unionDecl}
   };
 |]
   where
@@ -230,6 +234,18 @@ defUnion n refDecl fields = chompNewline [i|
     fdefs = intercalate "\n      " $ map defField fields
     tagDefs = intercalate "\n      " $ map defTag fields
     numFields = length fields
+
+    isEmpty S.EmptyField {} = True
+    isEmpty _ = False
+
+    unionDecl =
+      if length (filter (not . isEmpty) fields) <= 0
+        then ""
+        else [i|
+    union {
+      #{fdefs}
+    };
+|]
 
 emptyFieldComment :: S.Field -> String
 emptyFieldComment S.EmptyField { S.fName = fn, S.fIndex = ix } = [i|/* no data for field #{fn} with index #{ix} */|]

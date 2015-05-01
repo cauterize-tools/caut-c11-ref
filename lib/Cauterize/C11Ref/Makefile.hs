@@ -11,7 +11,7 @@ import qualified Cauterize.Specification as S
 makefileFromSpec :: S.Spec -> String
 makefileFromSpec s = unindent [i|
   CC=clang
-  CFLAGS=-O3 -Wall -Wextra -std=c11 -pedantic
+  CFLAGS=-O3 -Werror -Wall -Wextra -std=c11 -pedantic
   CLIENT_PROG=test_client
 
   CFILES := cauterize.c #{ln}.c
