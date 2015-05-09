@@ -8,7 +8,7 @@
 static void caut_encode_iter_advance(P * iter, size_t adv);
 static void caut_decode_iter_advance(U * iter, size_t adv);
 
-void caut_encode_iter_init(P * iter, void * buffer, size_t length) {
+void caut_encode_iter_init(P * const iter, void * const buffer, size_t const length) {
   CAUT_ASSERT(iter);
   CAUT_ASSERT(buffer);
 
@@ -17,17 +17,21 @@ void caut_encode_iter_init(P * iter, void * buffer, size_t length) {
   iter->position = 0;
 }
 
-void * caut_encode_iter_buffer(P * iter) {
+void * caut_encode_iter_buffer(const P * const iter) {
   CAUT_ASSERT(iter);
 
   return iter->buffer;
 }
 
-size_t caut_encode_iter_remaining(P * iter) {
+size_t caut_encode_iter_remaining(const P * const iter) {
   CAUT_ASSERT(iter);
   CAUT_ASSERT(iter->position <= iter->length);
 
   return iter->length - iter->position;
+}
+
+size_t caut_encode_iter_used(const P * const iter) {
+  return iter->position;
 }
 
 static void caut_encode_iter_advance(P * iter, size_t adv) {
@@ -49,19 +53,19 @@ void caut_decode_iter_init(U * iter, void * buffer, size_t length) {
   iter->position = 0;
 }
 
-void * caut_decode_iter_buffer(U * iter) {
+void * caut_decode_iter_buffer(const U * const iter) {
   CAUT_ASSERT(iter);
 
   return iter->buffer;
 }
-size_t caut_decode_iter_remaining(U * iter) {
+size_t caut_decode_iter_remaining(const U * const iter) {
   CAUT_ASSERT(iter);
   CAUT_ASSERT(iter->position <= iter->length);
 
   return iter->length - iter->position;
 }
 
-static void caut_decode_iter_advance(U * iter, size_t adv) {
+static void caut_decode_iter_advance(U * const iter, size_t adv) {
   CAUT_ASSERT(iter);
 
   size_t rem = caut_decode_iter_remaining(iter);

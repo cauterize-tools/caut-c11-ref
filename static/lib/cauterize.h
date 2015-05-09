@@ -81,13 +81,14 @@ struct caut_decode_iter {
 };
 
 void caut_encode_iter_init(struct caut_encode_iter * const iter, void * const buffer, size_t const length);
-void * caut_encode_iter_buffer(struct caut_encode_iter * const iter);
-size_t caut_encode_iter_remaining(struct caut_encode_iter * const iter);
+void * caut_encode_iter_buffer(const struct caut_encode_iter * const iter);
+size_t caut_encode_iter_remaining(const struct caut_encode_iter * const iter);
+size_t caut_encode_iter_used(const struct caut_encode_iter * const iter);
 
 
 void caut_decode_iter_init(struct caut_decode_iter * const iter, void * const buffer, size_t const length);
-void * caut_decode_iter_buffer(struct caut_decode_iter * const iter);
-size_t caut_decode_iter_remaining(struct caut_decode_iter * const iter);
+void * caut_decode_iter_buffer(const struct caut_decode_iter * const iter);
+size_t caut_decode_iter_remaining(const struct caut_decode_iter * const iter);
 
 
 
