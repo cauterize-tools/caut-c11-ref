@@ -1,10 +1,9 @@
 {-# LANGUAGE QuasiQuotes #-}
-module Cauterize.C11Ref.LibCFile
-  ( cFileFromSpec
+module Cauterize.C11Ref.LibCMessageFile
+  ( cMessageFileFromSpec
   ) where
 
-import Cauterize.C11Ref.LibCFile.Encoders
-import Cauterize.C11Ref.LibCFile.Decoders
+import Cauterize.C11Ref.LibCFile.MessageInterface
 import Cauterize.C11Ref.Util
 import Data.Char (toUpper)
 import Data.List (intercalate)
@@ -16,40 +15,31 @@ import Numeric
 import qualified Cauterize.FormHash as S
 import qualified Cauterize.Specification as S
 
-cFileFromSpec :: S.Spec -> String
-cFileFromSpec = unindent . concat . fromSpec
+cMessageFileFromSpec :: S.Spec -> String
+cMessageFileFromSpec = unindent . concat . fromSpec
 
 fromSpec :: S.Spec -> [String]
 fromSpec s = [chompNewline [i|
-  #include "#{ln}.h"
+  #include "#{ln}_message.h"
 
   #define R enum caut_status
   #define EI struct caut_encode_iter
   #define DI struct caut_decode_iter
   #define FSET(FS,IX) ((FS) & (1ull << (IX)))
 |]
-  , comment "schema hash"
-  , [i|  hashtype_t const SCHEMA_HASH_#{ln} = { #{hashToBytes (S.specHash s)} };|]
-  , blankLine
-
-  , comment "type encoders"
-  , unlines (map typeEncoder types)
-  , blankLine
-
-  , comment "type decoders"
-  , unlines (map typeDecoder types)
-  , blankLine
-
+  , comment "type descriptors"
   , chompNewline [i|
-  #undef R
-  #undef I
+  const caut_type_descriptors_#{ln}_t type_descriptors = {
+#{typeDescs}
+  };
 |]
-  , blankLine
+
+  , comment "message interface"
+  , messageInterfaceFromSpec s
   ]
   where
     types = S.specTypes s
     ln = unpack $ S.specName s
-    blankLine = "\n"
     typeDescs = intercalate ",\n" $ map typeDesc types
 
 typeDesc :: S.SpType -> String
@@ -67,7 +57,6 @@ typeDesc t = chompNewline [i|
 
 typeHashByteArray :: S.SpType -> String
 typeHashByteArray t = [i|{ #{hashToBytes (S.spHash t)} }|]
-
 
 -- Some utility functions specific to generating C files
 hashToBytes :: S.FormHash -> String

@@ -14,6 +14,7 @@ testClientFromSpec s = unindent [i|
   #define TEST_CLIENT_INTERFACE_#{ln}
 
   #include "#{ln}.h"
+  #include "#{ln}_message.h"
 
   #define MESSAGE_HEADER_T struct message_header_#{ln}
   #define MESSAGE_T struct message_#{ln}

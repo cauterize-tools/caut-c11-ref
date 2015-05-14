@@ -14,8 +14,8 @@ makefileFromSpec s = unindent [i|
   CFLAGS=-O3 -Werror -Wall -Wextra -std=c11 -pedantic
   CLIENT_PROG=test_client
 
-  CFILES := cauterize.c #{ln}.c
-  HFILES := cauterize.h #{ln}.h
+  CFILES := cauterize.c #{ln}.c #{ln}_message.c
+  HFILES := cauterize.h #{ln}.h #{ln}_message.h
 
   all: $(CLIENT_PROG)
   clean:
