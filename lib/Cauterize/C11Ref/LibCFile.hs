@@ -5,6 +5,7 @@ module Cauterize.C11Ref.LibCFile
 
 import Cauterize.C11Ref.LibCFile.Encoders
 import Cauterize.C11Ref.LibCFile.Decoders
+import Cauterize.C11Ref.LibCFile.Initializers
 import Cauterize.C11Ref.Util
 import Data.Char (toUpper)
 import Data.List (intercalate)
@@ -32,6 +33,10 @@ fromSpec s = [chompNewline [i|
   , [i|  hashtype_t const SCHEMA_HASH_#{ln} = { #{hashToBytes (S.specHash s)} };|]
   , blankLine
 
+  , comment "type initializers"
+  , unlines (map typeInit types)
+  , blankLine
+
   , comment "type encoders"
   , unlines (map typeEncoder types)
   , blankLine
@@ -40,7 +45,6 @@ fromSpec s = [chompNewline [i|
   , unlines (map typeDecoder types)
   , blankLine
 
-  -- TODO: init_
   -- TODO: order_
 
   , chompNewline [i|
