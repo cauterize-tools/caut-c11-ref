@@ -40,6 +40,9 @@ fromSpec s = [chompNewline [i|
   , unlines (map typeDecoder types)
   , blankLine
 
+  -- TODO: init_
+  -- TODO: order_
+
   , chompNewline [i|
   #undef R
   #undef I
@@ -50,24 +53,6 @@ fromSpec s = [chompNewline [i|
     types = S.specTypes s
     ln = unpack $ S.specName s
     blankLine = "\n"
-    typeDescs = intercalate ",\n" $ map typeDesc types
-
-typeDesc :: S.SpType -> String
-typeDesc t = chompNewline [i|
-    {
-      .name = "#{n}",
-      .hash = #{typeHashByteArray t},
-      .encode = (gen_encode*)encode_#{n},
-      .decode = (gen_decode*)decode_#{n},
-      .min_size = #{S.minSize t},
-      .max_size = #{S.maxSize t},
-    }|]
-  where
-    n = S.typeName t
-
-typeHashByteArray :: S.SpType -> String
-typeHashByteArray t = [i|{ #{hashToBytes (S.spHash t)} }|]
-
 
 -- Some utility functions specific to generating C files
 hashToBytes :: S.FormHash -> String
