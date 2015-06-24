@@ -22,6 +22,7 @@ library
                        Cauterize.C11Ref.LibCMessageFile,
                        Cauterize.C11Ref.LibCFile.Encoders,
                        Cauterize.C11Ref.LibCFile.Decoders,
+                       Cauterize.C11Ref.LibCFile.Comparators,
                        Cauterize.C11Ref.LibCFile.Initializers,
                        Cauterize.C11Ref.LibCFile.MessageInterface,
                        Cauterize.C11Ref.LibHFile,

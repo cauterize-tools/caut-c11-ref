@@ -99,7 +99,7 @@ typeFuncPrototypes t = chompNewline [i|
   enum caut_status encode_#{n}(struct caut_encode_iter * const _c_iter, #{d} const * const _c_obj);
   enum caut_status decode_#{n}(struct caut_decode_iter * const _c_iter, #{d} * const _c_obj);
   void init_#{n}(#{d} * _c_obj);
-  enum caut_ord order_#{n}(#{d} const * const _c_a, #{d} const * const _c_b);
+  enum caut_ord compare_#{n}(#{d} const * const _c_a, #{d} const * const _c_b);
 |]
   where
     d = t2decl t

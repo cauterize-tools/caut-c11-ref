@@ -52,6 +52,9 @@ typedef bool caut_bool;
 #define CAUT_ORDER(A,B) \
   ((A) < (B) ? caut_ord_lt : ((A) > (B) ? caut_ord_gt : caut_ord_eq))
 
+#define CHECK_BIT(F,IX) \
+  (((F) >> (IX)) & 1)
+
 struct caut_encode_iter;
 struct caut_decode_iter;
 
