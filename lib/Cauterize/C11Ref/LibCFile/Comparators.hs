@@ -32,8 +32,7 @@ compareBody t = b
         S.Vector { S.unVector = S.TVector { S.vectorRef = r } } -> compareVector (unpack r)
         S.Record { S.unRecord = S.TRecord { S.recordFields = S.Fields fs } } -> compareRecord fs
         S.Combination { S.unCombination = S.TCombination { S.combinationFields = S.Fields fs } } -> compareCombination fs
-        S.Union { S.unUnion = S.TUnion { S.unionFields = S.Fields { S.unFields = fs } }
-                , S.tagRepr = S.TagRepr tr } -> compareUnion n (show tr) fs
+        S.Union { S.unUnion = S.TUnion { S.unionFields = S.Fields { S.unFields = fs } } } -> compareUnion n fs
 
 compareBuiltin :: String
 compareBuiltin = [i|    return CAUT_ORDER(*_c_a, *_c_b);|]
@@ -85,10 +84,21 @@ compareCombination fs = chompNewline [i|
   where
     fieldComps = intercalate "\n" $ map compareCombinationField fs
 
-compareUnion :: String -> String -> [S.Field] -> String
-compareUnion n tr fs = chompNewline [i|
-|]
--- "(void)_c_a; (void)_c_b; return caut_ord_eq;"
+compareUnion :: String -> [S.Field] -> String
+compareUnion n fs = chompNewline [i|
+    enum caut_ord _c_o;
+
+    if (caut_ord_eq != (_c_o = CAUT_ORDER(_c_a->_tag, _c_b->_tag))) {
+      return _c_o;
+    }
+
+    switch(_c_a->_tag) {
+#{fieldComps}
+    }
+
+    return caut_ord_eq;|]
+  where
+    fieldComps = intercalate "\n" $ map (compareUnionField n) fs
 
 compareRecordField :: S.Field -> String
 compareRecordField S.EmptyField { S.fName = n }        = [i|    /* No comparison for empty field #{n} */|]
@@ -113,3 +123,16 @@ compareCombinationField f = chompNewline [i|
       if (caut_ord_eq != _c_o) {
         return _c_o;
       }|]
+
+compareUnionField :: String -> S.Field -> String
+compareUnionField tname f = chompNewline [i|
+    case #{tname}_tag_#{n}:
+#{compBody f}|]
+  where
+    n = S.fName f
+    compBody S.EmptyField {} = chompNewline [i|
+      _c_o = caut_ord_eq; /* No comparison for empty field #{n} */
+      break;|]
+    compBody S.Field { S.fRef = r } = chompNewline [i|
+      _c_o = compare_#{r}(&_c_a->#{n}, &_c_b->#{n});
+      break;|]
