@@ -9,16 +9,17 @@ import Data.Char (toUpper)
 import Data.List (intercalate)
 import Data.String.Interpolate
 import Data.String.Interpolate.Util
-import Data.Text.Lazy (unpack)
+import Data.Text (unpack)
 import Data.Word
 import Numeric
-import qualified Cauterize.FormHash as S
+import qualified Cauterize.Hash as H
 import qualified Cauterize.Specification as S
+import qualified Cauterize.CommonTypes as C
 
-cMessageFileFromSpec :: S.Spec -> String
+cMessageFileFromSpec :: S.Specification -> String
 cMessageFileFromSpec = unindent . concat . fromSpec
 
-fromSpec :: S.Spec -> [String]
+fromSpec :: S.Specification -> [String]
 fromSpec s = [chompNewline [i|
   #include "#{ln}_message.h"
 
@@ -42,25 +43,26 @@ fromSpec s = [chompNewline [i|
     ln = unpack $ S.specName s
     typeDescs = intercalate ",\n" $ map typeDesc types
 
-typeDesc :: S.SpType -> String
+typeDesc :: S.Type -> String
 typeDesc t = chompNewline [i|
     {
       .name = "#{n}",
       .hash = #{typeHashByteArray t},
       .encode = (gen_encode*)encode_#{n},
       .decode = (gen_decode*)decode_#{n},
-      .min_size = #{S.minSize t},
-      .max_size = #{S.maxSize t},
+      .min_size = #{C.sizeMin ts},
+      .max_size = #{C.sizeMin ts},
     }|]
   where
+    ts = S.typeSize t
     n = S.typeName t
 
-typeHashByteArray :: S.SpType -> String
-typeHashByteArray t = [i|{ #{hashToBytes (S.spHash t)} }|]
+typeHashByteArray :: S.Type -> String
+typeHashByteArray t = [i|{ #{hashToBytes (S.typeFingerprint t)} }|]
 
 -- Some utility functions specific to generating C files
-hashToBytes :: S.FormHash -> String
-hashToBytes h = let bs = S.hashToBytes h
+hashToBytes :: H.Hash -> String
+hashToBytes h = let bs = H.hashToBytes h
                 in bytesToCSV bs
 
 bytesToCSV :: [Word8] -> String

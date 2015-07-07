@@ -5,10 +5,11 @@ module Cauterize.C11Ref.LibCFile.MessageInterface
 
 import Cauterize.C11Ref.Util
 import Data.String.Interpolate
-import Data.Text.Lazy (unpack)
+import Data.Text (unpack)
+import qualified Cauterize.CommonTypes as C
 import qualified Cauterize.Specification as S
 
-messageInterfaceFromSpec :: S.Spec -> String
+messageInterfaceFromSpec :: S.Specification -> String
 messageInterfaceFromSpec s = chompNewline [i|
   R encode_message_#{ln}(EI * const _iter, struct message_#{ln} const * const _obj) {
     const struct caut_type_descriptor * const desc = &type_descriptors[_obj->_type];
@@ -58,6 +59,6 @@ messageInterfaceFromSpec s = chompNewline [i|
 |]
   where
     ln = unpack $ S.specName s
-    lenWidth = (S.unLengthTagWidth . S.specLengthTagWidth) s
+    lenWidth = (C.sizeMax . C.tagToSize . S.specLengthTag) s
     lenDecl = len2c lenWidth
-    lenBi = len2bi lenWidth
+    lenBi = len2tag lenWidth

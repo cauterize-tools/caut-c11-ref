@@ -5,10 +5,10 @@ module Cauterize.C11Ref.TestClient
 
 import Data.String.Interpolate
 import Data.String.Interpolate.Util
-import Data.Text.Lazy (unpack)
+import Data.Text (unpack)
 import qualified Cauterize.Specification as S
 
-testClientFromSpec :: S.Spec -> String
+testClientFromSpec :: S.Specification -> String
 testClientFromSpec s = unindent [i|
   #ifndef TEST_CLIENT_INTERFACE_#{ln}
   #define TEST_CLIENT_INTERFACE_#{ln}

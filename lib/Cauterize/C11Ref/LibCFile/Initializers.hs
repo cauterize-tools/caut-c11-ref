@@ -7,7 +7,7 @@ import Cauterize.C11Ref.Util
 import Data.String.Interpolate
 import Data.Text.Lazy (unpack)
 import Data.List (intercalate)
-import qualified Cauterize.Common.Types as S
+import qualified Cauterize.CommonTypes as C
 import qualified Cauterize.Specification as S
 
 typeInit :: S.SpType -> String

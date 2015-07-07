@@ -8,13 +8,14 @@ import Cauterize.C11Ref.Util
 import Data.List (intercalate)
 import Data.String.Interpolate
 import Data.String.Interpolate.Util
-import Data.Text.Lazy (unpack)
+import Data.Text (unpack)
 import qualified Cauterize.Specification as S
+import qualified Cauterize.CommonTypes as C
 
-hMessageFileFromSpec :: S.Spec -> String
+hMessageFileFromSpec :: S.Specification -> String
 hMessageFileFromSpec = unindent . concat . fromSpec
 
-fromSpec :: S.Spec -> [String]
+fromSpec :: S.Specification -> [String]
 fromSpec s = [chompNewline [i|
   #ifndef #{guardSym}
   #define #{guardSym}
@@ -22,8 +23,8 @@ fromSpec s = [chompNewline [i|
   #include "#{ln}.h"
 
   /* message interface */
-  #define TYPE_TAG_WIDTH_#{ln} (#{(S.unTypeTagWidth . S.specTypeTagWidth) s})
-  #define LENGTH_WIDTH_#{ln} (#{(S.unLengthTagWidth . S.specLengthTagWidth) s})
+  #define TYPE_TAG_WIDTH_#{ln} (#{S.specTypeLength s})
+  #define LENGTH_WIDTH_#{ln} (#{C.sizeMax . C.tagToSize $ S.specLengthTag s})
 
   #define MESSAGE_OVERHEAD_#{ln} (TYPE_TAG_WIDTH_#{ln} + LENGTH_WIDTH_#{ln})
   #define MESSAGE_MAX_SIZE_#{ln} (MESSAGE_OVERHEAD_#{ln} + MAX_SIZE_#{ln})

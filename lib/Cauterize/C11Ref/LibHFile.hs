@@ -10,16 +10,16 @@ import Data.List (intercalate)
 import Data.Maybe
 import Data.String.Interpolate
 import Data.String.Interpolate.Util
-import Data.Text.Lazy (unpack)
+import Data.Text (unpack)
 import Numeric
-import qualified Cauterize.Common.Types as S
+import qualified Cauterize.CommonTypes as C
 import qualified Cauterize.Specification as S
 import qualified Data.Map as M
 
-hFileFromSpec :: S.Spec -> String
+hFileFromSpec :: S.Specification -> String
 hFileFromSpec = unindent . concat . fromSpec
 
-fromSpec :: S.Spec -> [String]
+fromSpec :: S.Specification -> [String]
 fromSpec s = [chompNewline [i|
   #ifndef #{guardSym}
   #define #{guardSym}
@@ -30,8 +30,8 @@ fromSpec s = [chompNewline [i|
   , chompNewline [i|
   #define NAME_#{ln} "#{ln}"
   #define VERSION_#{ln} "#{unpack $ S.specVersion s}"
-  #define MIN_SIZE_#{ln} (#{S.minSize libsize})
-  #define MAX_SIZE_#{ln} (#{S.maxSize libsize})
+  #define MIN_SIZE_#{ln} (#{C.sizeMin libsize})
+  #define MAX_SIZE_#{ln} (#{C.sizeMax libsize})
   #define NUM_TYPES_#{ln} (#{length types})
 |]
   , comment "schema hash"
@@ -46,7 +46,7 @@ fromSpec s = [chompNewline [i|
 |]
 
   , comment "forward declarations"
-  , unlines (mapMaybe typeForwardDecl types)
+  , unlines (mapMaybe (typeForwardDecl luDecl) types)
 
   , comment "type definitions"
   , unlines (mapMaybe (typeDefinition luDecl) types)
@@ -74,27 +74,25 @@ fromSpec s = [chompNewline [i|
                     d = map t2decl s'
                     n = fmap S.typeName s'
                 in M.fromList $ zip n d
-    luDecl n = fromMaybe (error $ "Invalid name: " ++ unpack n ++ ".")
+    luDecl n = fromMaybe (error $ "Invalid name: " ++ unpack (C.unIdentifier n) ++ ".")
                          (M.lookup n n2declMap)
 
-typeForwardDecl :: S.SpType -> Maybe String
-typeForwardDecl t = fmap ("  " ++) (go t)
+typeForwardDecl :: (C.Identifier -> String) -> S.Type -> Maybe String
+typeForwardDecl refDecl (S.Type { S.typeName = n, S.typeDesc = t }) = fmap ("  " ++) (go t)
   where
-    n = S.typeName t
     structish flavor = Just [i|struct #{n}; /* #{flavor} */|]
-    go S.BuiltIn { S.unBuiltIn = S.TBuiltIn { S.unTBuiltIn = b } } =
-      case b of
-        S.BIbool -> Nothing -- We don't want to redefine 'bool'. stdbool.h defines this for us.
-        b' -> Just [i|typedef #{bi2c b'} #{n}; /* builtin */|]
-    go S.Synonym { S.unSynonym = S.TSynonym { S.synonymRepr = r } } =
-      Just [i|typedef #{bi2c r} #{n}; /* synonym */|]
+    go S.Synonym { S.synonymRef = r } =
+      Just [i|typedef #{refDecl r} #{n}; /* synonym */|]
+    go S.Range { S.rangePrim = p } =
+      Just [i|typedef #{prim2c p} #{n}; /* range */|]
     go S.Array {} = structish "array"
     go S.Vector {} = structish "vector"
+    go S.Enumeration {} = Nothing -- enumerations cannot be forward decl'ed in ISO C
     go S.Record {} = structish "record"
     go S.Combination {} = structish "combination"
     go S.Union {} = structish "union"
 
-typeFuncPrototypes :: S.SpType -> String
+typeFuncPrototypes :: S.Type -> String
 typeFuncPrototypes t = chompNewline [i|
   enum caut_status encode_#{n}(struct caut_encode_iter * const _c_iter, #{d} const * const _c_obj);
   enum caut_status decode_#{n}(struct caut_decode_iter * const _c_iter, #{d} * const _c_obj);
@@ -105,19 +103,19 @@ typeFuncPrototypes t = chompNewline [i|
     d = t2decl t
     n = S.typeName t
 
-typeDefinition :: (S.Name -> String) -> S.SpType -> Maybe String
-typeDefinition refDecl t =
-  case t of
-    S.Array { S.unArray = S.TArray { S.arrayRef = r, S.arrayLen = l } } -> Just $ defArray n (refDecl r) l
-    S.Vector { S.unVector = S.TVector { S.vectorRef = r, S.vectorMaxLen = l }
-              , S.lenRepr = S.LengthRepr lr } -> Just $ defVector n (refDecl r) l lr
-    S.Record { S.unRecord = S.TRecord { S.recordFields = S.Fields fs } } -> Just $ defRecord n refDecl fs
-    S.Combination { S.unCombination = S.TCombination { S.combinationFields = S.Fields fs }
-                  , S.flagsRepr = S.FlagsRepr fr } -> Just $ defCombination n refDecl fs fr
-    S.Union { S.unUnion = S.TUnion { S.unionFields = S.Fields fs } } -> Just $ defUnion n refDecl fs
-    _ -> Nothing
+typeDefinition :: (C.Identifier -> String) -> S.Type -> Maybe String
+typeDefinition refDecl (S.Type { S.typeName = n, S.typeDesc = d } ) =
+  case d of
+    S.Synonym {} -> Nothing
+    S.Range {} -> Nothing
+    S.Array {  S.arrayRef = r, S.arrayLength = l } -> Just $ defArray n' (refDecl r) (fromIntegral l)
+    S.Vector { S.vectorRef = r, S.vectorLength = l, S.vectorTag = t } -> Just $ defVector n' (refDecl r) (fromIntegral l) t
+    S.Enumeration { S.enumerationValues = vs } -> Just $ defEnum n' vs
+    S.Record { S.recordFields = fs } -> Just $ defRecord n' refDecl fs
+    S.Combination { S.combinationFields = fs, S.combinationTag = t } -> Just $ defCombination n' refDecl fs t
+    S.Union { S.unionFields = fs } -> Just $ defUnion n' refDecl fs
   where
-    n = unpack $ S.typeName t
+    n' = unpack . C.unIdentifier $ n
 
 defArray :: String -> String -> Integer -> String
 defArray n refDecl len =
@@ -129,10 +127,10 @@ defArray n refDecl len =
   };
 |]
 
-defVector :: String -> String -> Integer -> S.BuiltIn -> String
+defVector :: String -> String -> Integer -> C.Tag -> String
 defVector n refDecl len lenRep =
   let maxLenSym = [i|VECTOR_MAX_LEN_#{n}|]
-      lenRepDecl = bi2c lenRep
+      lenRepDecl = tag2c lenRep
   in chompNewline [i|
   #define #{maxLenSym} (#{len})
   struct #{n} {
@@ -141,22 +139,33 @@ defVector n refDecl len lenRep =
   };
 |]
 
-defRecord :: String -> (S.Name -> String) -> [S.Field] -> String
+defEnum :: String -> [S.EnumVal] -> String
+defEnum n vs = chompNewline [i|
+  enum #{n} {
+    #{vdefs}
+  };
+|]
+  where
+    vdefs = intercalate "\n      " $ map defVal vs
+    defVal (S.EnumVal vn ix) = let vn' = unpack . C.unIdentifier $ vn
+                              in [i|#{n}_#{vn'} = #{show ix}|]
+
+defRecord :: String -> (C.Identifier -> String) -> [S.Field] -> String
 defRecord n refDecl fields = chompNewline [i|
   struct #{n} {
     #{fdefs}
   };
 |]
   where
-    defField S.Field { S.fName = fn, S.fRef = fr} = [i|#{refDecl fr} #{fn};|]
+    defField S.DataField { S.fieldName = fn, S.fieldRef = fr} = [i|#{refDecl fr} #{fn};|]
     defField f@S.EmptyField {} = emptyFieldComment f
     fdefs = intercalate "\n    " $ map defField fields
 
-defCombination :: String -> (S.Name -> String) -> [S.Field] -> S.BuiltIn -> String
+defCombination :: String -> (C.Identifier -> String) -> [S.Field] -> C.Tag -> String
 defCombination n refDecl fields flagsRepr = chompNewline [i|
   #define COMBINATION_FLAGS_#{n} (0x#{flagsMask}ull)
   struct #{n} {
-    #{bi2c flagsRepr} _flags;
+    #{tag2c flagsRepr} _flags;
     #{fdefs}
   };
 |]
@@ -164,11 +173,11 @@ defCombination n refDecl fields flagsRepr = chompNewline [i|
     flagsMask = case length fields of
                   0 -> "0"
                   l -> map toUpper $ showHex (((2 :: Integer) ^ l) - 1) ""
-    defField S.Field { S.fName = fn, S.fRef = fr} = [i|#{refDecl fr} #{fn};|]
+    defField S.DataField { S.fieldName = fn, S.fieldRef = fr} = [i|#{refDecl fr} #{fn};|]
     defField f@S.EmptyField {} = emptyFieldComment f
     fdefs = intercalate "\n    " $ map defField fields
 
-defUnion :: String -> (S.Name -> String) -> [S.Field] -> String
+defUnion :: String -> (C.Identifier -> String) -> [S.Field] -> String
 defUnion n refDecl fields = chompNewline [i|
   #define UNION_NUM_FIELDS_#{n} (0x#{numFields}ull)
   struct #{n} {
@@ -180,9 +189,9 @@ defUnion n refDecl fields = chompNewline [i|
   };
 |]
   where
-    defField S.Field { S.fName = fn, S.fRef = fr} = [i|#{refDecl fr} #{fn};|]
+    defField S.DataField { S.fieldName = fn, S.fieldRef = fr} = [i|#{refDecl fr} #{fn};|]
     defField f@S.EmptyField {} = emptyFieldComment f
-    defTag f = [i|#{n}_tag_#{S.fName f} = #{S.fIndex f},|]
+    defTag f = [i|#{n}_tag_#{S.fieldName f} = #{S.fieldIndex f},|]
     fdefs = intercalate "\n      " $ map defField fields
     tagDefs = intercalate "\n      " $ map defTag fields
     numFields = length fields
@@ -200,5 +209,5 @@ defUnion n refDecl fields = chompNewline [i|
 |]
 
 emptyFieldComment :: S.Field -> String
-emptyFieldComment S.EmptyField { S.fName = fn, S.fIndex = ix } = [i|/* no data for field #{fn} with index #{ix} */|]
+emptyFieldComment S.EmptyField { S.fieldName = fn, S.fieldIndex = ix } = [i|/* no data for field #{fn} with index #{ix} */|]
 emptyFieldComment _ = error "emptyFieldComment: invalid for all but EmptyField"

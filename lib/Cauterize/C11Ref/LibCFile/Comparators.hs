@@ -7,10 +7,10 @@ import Cauterize.C11Ref.Util
 import Data.String.Interpolate
 import Data.Text.Lazy (unpack)
 import Data.List (intercalate)
-import qualified Cauterize.Common.Types as S
+import qualified Cauterize.CommonTypes as C
 import qualified Cauterize.Specification as S
 
-typeCompare :: S.SpType -> String
+typeCompare :: S.Type -> String
 typeCompare t = chompNewline [i|
   enum caut_ord compare_#{name}(#{decl} const * const _c_a, #{decl} const * const _c_b) {
 #{compareBody t}
@@ -20,7 +20,7 @@ typeCompare t = chompNewline [i|
     name = S.typeName t
     decl = t2decl t
 
-compareBody :: S.SpType -> String
+compareBody :: S.Type -> String
 compareBody t = b
   where
     n = unpack $ S.typeName t

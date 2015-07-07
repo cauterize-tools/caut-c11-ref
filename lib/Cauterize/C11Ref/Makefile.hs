@@ -5,10 +5,10 @@ module Cauterize.C11Ref.Makefile
 
 import Data.String.Interpolate
 import Data.String.Interpolate.Util
-import Data.Text.Lazy (unpack)
+import Data.Text (unpack)
 import qualified Cauterize.Specification as S
 
-makefileFromSpec :: S.Spec -> String
+makefileFromSpec :: S.Specification -> String
 makefileFromSpec s = unindent [i|
   CC=clang
   CFLAGS=-O3 -Werror -Wall -Wextra -std=c11 -pedantic

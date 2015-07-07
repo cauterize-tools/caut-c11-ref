@@ -15,7 +15,7 @@ import Data.String.Interpolate.Util
 import Data.Text.Lazy (unpack)
 import Data.Word
 import Numeric
-import qualified Cauterize.FormHash as S
+import qualified Cauterize.Hash as H
 import qualified Cauterize.Specification as S
 
 cFileFromSpec :: S.Spec -> String
@@ -64,8 +64,8 @@ fromSpec s = [chompNewline [i|
     blankLine = "\n"
 
 -- Some utility functions specific to generating C files
-hashToBytes :: S.FormHash -> String
-hashToBytes h = let bs = S.hashToBytes h
+hashToBytes :: H.FormHash -> String
+hashToBytes h = let bs = H.hashToBytes h
                 in bytesToCSV bs
 
 bytesToCSV :: [Word8] -> String
