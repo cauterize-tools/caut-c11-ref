@@ -63,28 +63,31 @@ fromSpec s = [chompNewline [i|
     guardSym = [i|_CAUTERIZE_C11REF_#{ln}_|]
     blankLine = "\n"
     libsize = S.specSize s
-    ln = unpack $ S.specName s
+    ln = unpack (S.specName s)
     types = S.specTypes s
     typeIndicies =
       let withIndex = zip [(0 :: Integer)..] types
-      in intercalate "\n" $ map (\(ix,t) -> [i|    type_index_#{ln}_#{S.typeName t} = #{ix},|]) withIndex
+      in intercalate "\n" $ map (\(ix,t) -> [i|    type_index_#{ln}_#{ident2str $ S.typeName t} = #{ix},|]) withIndex
+
+    primDeclMap = fmap prim2c C.primMap
 
     -- Names to how you delcare that name
     n2declMap = let s' = S.specTypes s
                     d = map t2decl s'
                     n = fmap S.typeName s'
-                in M.fromList $ zip n d
+                in primDeclMap `M.union` M.fromList (zip n d)
     luDecl n = fromMaybe (error $ "Invalid name: " ++ unpack (C.unIdentifier n) ++ ".")
                          (M.lookup n n2declMap)
 
 typeForwardDecl :: (C.Identifier -> String) -> S.Type -> Maybe String
 typeForwardDecl refDecl (S.Type { S.typeName = n, S.typeDesc = t }) = fmap ("  " ++) (go t)
   where
-    structish flavor = Just [i|struct #{n}; /* #{flavor} */|]
+    n' = ident2str n
+    structish flavor = Just [i|struct #{n'}; /* #{flavor} */|]
     go S.Synonym { S.synonymRef = r } =
-      Just [i|typedef #{refDecl r} #{n}; /* synonym */|]
+      Just [i|typedef #{refDecl r} #{n'}; /* synonym */|]
     go S.Range { S.rangePrim = p } =
-      Just [i|typedef #{prim2c p} #{n}; /* range */|]
+      Just [i|typedef #{prim2c p} #{n'}; /* range */|]
     go S.Array {} = structish "array"
     go S.Vector {} = structish "vector"
     go S.Enumeration {} = Nothing -- enumerations cannot be forward decl'ed in ISO C
@@ -101,7 +104,7 @@ typeFuncPrototypes t = chompNewline [i|
 |]
   where
     d = t2decl t
-    n = S.typeName t
+    n = ident2str $ S.typeName t
 
 typeDefinition :: (C.Identifier -> String) -> S.Type -> Maybe String
 typeDefinition refDecl (S.Type { S.typeName = n, S.typeDesc = d } ) =
@@ -115,7 +118,7 @@ typeDefinition refDecl (S.Type { S.typeName = n, S.typeDesc = d } ) =
     S.Combination { S.combinationFields = fs, S.combinationTag = t } -> Just $ defCombination n' refDecl fs t
     S.Union { S.unionFields = fs } -> Just $ defUnion n' refDecl fs
   where
-    n' = unpack . C.unIdentifier $ n
+    n' = ident2str n
 
 defArray :: String -> String -> Integer -> String
 defArray n refDecl len =
@@ -157,7 +160,7 @@ defRecord n refDecl fields = chompNewline [i|
   };
 |]
   where
-    defField S.DataField { S.fieldName = fn, S.fieldRef = fr} = [i|#{refDecl fr} #{fn};|]
+    defField S.DataField { S.fieldName = fn, S.fieldRef = fr} = [i|#{refDecl fr} #{ident2str fn};|]
     defField f@S.EmptyField {} = emptyFieldComment f
     fdefs = intercalate "\n    " $ map defField fields
 
@@ -173,7 +176,7 @@ defCombination n refDecl fields flagsRepr = chompNewline [i|
     flagsMask = case length fields of
                   0 -> "0"
                   l -> map toUpper $ showHex (((2 :: Integer) ^ l) - 1) ""
-    defField S.DataField { S.fieldName = fn, S.fieldRef = fr} = [i|#{refDecl fr} #{fn};|]
+    defField S.DataField { S.fieldName = fn, S.fieldRef = fr} = [i|#{refDecl fr} #{ident2str fn};|]
     defField f@S.EmptyField {} = emptyFieldComment f
     fdefs = intercalate "\n    " $ map defField fields
 
@@ -189,9 +192,9 @@ defUnion n refDecl fields = chompNewline [i|
   };
 |]
   where
-    defField S.DataField { S.fieldName = fn, S.fieldRef = fr} = [i|#{refDecl fr} #{fn};|]
+    defField S.DataField { S.fieldName = fn, S.fieldRef = fr} = [i|#{refDecl fr} #{ident2str fn};|]
     defField f@S.EmptyField {} = emptyFieldComment f
-    defTag f = [i|#{n}_tag_#{S.fieldName f} = #{S.fieldIndex f},|]
+    defTag f = [i|#{n}_tag_#{ident2str $ S.fieldName f} = #{S.fieldIndex f},|]
     fdefs = intercalate "\n      " $ map defField fields
     tagDefs = intercalate "\n      " $ map defTag fields
     numFields = length fields

@@ -64,7 +64,7 @@ fromSpec s = [chompNewline [i|
     guardSym = [i|_CAUTERIZE_C11REF_#{ln}_MESSAGE_|]
     ln = unpack $ S.specName s
     types = S.specTypes s
-    typeUnionFields = intercalate "\n" $ map (\t -> [i|      #{t2decl t} msg_#{S.typeName t};|]) types
+    typeUnionFields = intercalate "\n" $ map (\t -> [i|      #{t2decl t} msg_#{ident2str $ S.typeName t};|]) types
     unionDecl =
       if length types <= 0
         then ""

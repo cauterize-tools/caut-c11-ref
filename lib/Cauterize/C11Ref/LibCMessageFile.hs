@@ -55,7 +55,7 @@ typeDesc t = chompNewline [i|
     }|]
   where
     ts = S.typeSize t
-    n = S.typeName t
+    n = ident2str $ S.typeName t
 
 typeHashByteArray :: S.Type -> String
 typeHashByteArray t = [i|{ #{hashToBytes (S.typeFingerprint t)} }|]

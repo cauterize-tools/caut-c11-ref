@@ -12,16 +12,16 @@ import Data.Char (toUpper)
 import Data.List (intercalate)
 import Data.String.Interpolate
 import Data.String.Interpolate.Util
-import Data.Text.Lazy (unpack)
+import Data.Text (unpack)
 import Data.Word
 import Numeric
 import qualified Cauterize.Hash as H
 import qualified Cauterize.Specification as S
 
-cFileFromSpec :: S.Spec -> String
+cFileFromSpec :: S.Specification -> String
 cFileFromSpec = unindent . concat . fromSpec
 
-fromSpec :: S.Spec -> [String]
+fromSpec :: S.Specification -> [String]
 fromSpec s = [chompNewline [i|
   #include "#{ln}.h"
 
@@ -31,7 +31,7 @@ fromSpec s = [chompNewline [i|
   #define FSET(FS,IX) ((FS) & (1ull << (IX)))
 |]
   , comment "schema hash"
-  , [i|  hashtype_t const SCHEMA_HASH_#{ln} = { #{hashToBytes (S.specHash s)} };|]
+  , [i|  hashtype_t const SCHEMA_HASH_#{ln} = { #{hashToBytes (S.specFingerprint s)} };|]
   , blankLine
 
   , comment "type encoders"
@@ -64,7 +64,7 @@ fromSpec s = [chompNewline [i|
     blankLine = "\n"
 
 -- Some utility functions specific to generating C files
-hashToBytes :: H.FormHash -> String
+hashToBytes :: H.Hash -> String
 hashToBytes h = let bs = H.hashToBytes h
                 in bytesToCSV bs
 

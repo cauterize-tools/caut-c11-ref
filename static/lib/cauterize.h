@@ -29,6 +29,12 @@ typedef uint8_t hashtype_t[20];
 /* An alias for bool. Must be 1 byte. */
 typedef bool caut_bool;
 
+/* Aliases for catuerize tags. */
+typedef uint8_t  caut_tag8_t;
+typedef uint16_t caut_tag16_t;
+typedef uint32_t caut_tag32_t;
+typedef uint64_t caut_tag64_t;
+
 /* Returns the status if it's not `caut_status_ok`. */
 #define STATUS_CHECK(S) \
   do { \

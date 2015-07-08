@@ -11,7 +11,7 @@ import Cauterize.C11Ref.LibCMessageFile
 import Cauterize.C11Ref.TestClient
 import Cauterize.C11Ref.Makefile
 
-import Data.Text.Lazy (unpack)
+import Data.Text (unpack)
 import System.Directory
 import System.FilePath.Posix
 import qualified Data.ByteString as B
@@ -28,9 +28,9 @@ caut2c11 (Caut2C11Opts { specFile = sf, outputDirectory = od }) = createGuard od
   generateDynamicFiles od baseName spec
   where
 
-    loadSpec :: IO Sp.Spec
+    loadSpec :: IO Sp.Specification
     loadSpec = do
-      s <- Sp.parseFile sf
+      s <- Sp.parseSpecificationFromFile sf
       case s of
         Left e -> error $ show e
         Right s' -> return s'
@@ -51,7 +51,7 @@ copyStaticFilesTo path = mapM_ go allFiles
   where
     go (p, d) = B.writeFile (path `combine` p) d
 
-generateDynamicFiles :: FilePath -> String -> Sp.Spec -> IO ()
+generateDynamicFiles :: FilePath -> String -> Sp.Specification -> IO ()
 generateDynamicFiles path baseName spec = do
   writeFile (path `combine` (baseName ++ ".h")) (hFileFromSpec spec)
   writeFile (path `combine` (baseName ++ ".c")) (cFileFromSpec spec)
