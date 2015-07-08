@@ -5,12 +5,11 @@ module Cauterize.C11Ref.LibCFile.Decoders
 
 import Cauterize.C11Ref.Util
 import Data.String.Interpolate
-import Data.Text.Lazy (unpack)
 import Data.List (intercalate)
 import qualified Cauterize.CommonTypes as C
 import qualified Cauterize.Specification as S
 
-typeDecoder :: S.SpType -> String
+typeDecoder :: S.Type -> String
 typeDecoder t = chompNewline [i|
   R decode_#{name}(DI * const _c_iter, #{decl} * const _c_obj) {
 #{decoderBody t}
@@ -20,33 +19,35 @@ typeDecoder t = chompNewline [i|
     name = S.typeName t
     decl = t2decl t
 
-decoderBody :: S.SpType -> String
+decoderBody :: S.Type -> String
 decoderBody t = b
   where
-    n = unpack $ S.typeName t
-    b = case t of
-          S.BuiltIn {} -> builtinDecoderBody n
-          S.Synonym { S.unSynonym = S.TSynonym { S.synonymRepr = r } } ->
-            synonymDecoderBody r
-          S.Array { S.unArray = S.TArray { S.arrayRef = r } } ->
-            arrayDecoderBody (unpack r)
-          S.Vector { S.unVector = S.TVector { S.vectorRef = r }
-                    , S.lenRepr = S.LengthRepr lr } ->
-            vectorDecoderBody n (unpack r) lr
-          S.Record { S.unRecord = S.TRecord { S.recordFields = S.Fields fs } } ->
-            recordDecoderBody fs
-          S.Combination { S.unCombination = S.TCombination { S.combinationFields = S.Fields fs }
-                        , S.flagsRepr = S.FlagsRepr fr } ->
-            combinationDecoderBody n fs fr
-          S.Union { S.unUnion = S.TUnion { S.unionFields = S.Fields fs }
-                  , S.tagRepr = S.TagRepr tr } ->
-            unionDecoderBody n fs tr
+    n = ident2str $ S.typeName t
+    b = case S.typeDesc t of
+          S.Synonym { S.synonymRef = r } -> synonymDecoderBody (ident2str r)
+          S.Range { S.rangeOffset = o, S.rangeLength = l, S.rangeTag = rt } -> rangeDecoderBody o l rt
+          S.Array { S.arrayRef = r } -> arrayDecoderBody (ident2str r)
+          S.Vector { S.vectorRef = r, S.vectorTag = lr } -> vectorDecoderBody n (ident2str r) lr
+          S.Enumeration { S.enumerationValues = vs, S.enumerationTag = et } -> enumerationDecoderBody n vs et
+          S.Record { S.recordFields = fs } -> recordDecoderBody fs
+          S.Combination { S.combinationFields = fs, S.combinationTag = fr } -> combinationDecoderBody n fs fr
+          S.Union { S.unionFields = fs , S.unionTag = tr } -> unionDecoderBody n fs tr
 
-builtinDecoderBody :: String -> String
-builtinDecoderBody n = [i|    return __caut_decode_#{n}(_c_iter, _c_obj);|]
+synonymDecoderBody :: String -> String
+synonymDecoderBody r = [i|    return decode_#{r}(_c_iter, (#{r} *)_c_obj);|]
 
-synonymDecoderBody :: S.BuiltIn -> String
-synonymDecoderBody r = [i|    return __caut_decode_#{r}(_c_iter, (#{r} *)_c_obj);|]
+rangeDecoderBody :: C.Offset -> C.Length -> C.Tag -> String
+rangeDecoderBody o l t = chompNewline [i|
+    #{tag2c t} _c_tag;
+    STATUS_CHECK(#{tag2decodefn t}(_c_iter, &_c_tag));
+
+    if (_c_tag > #{show l}) {
+      return caut_status_range_out_of_bounds;
+    }
+
+    *_c_obj = _c_tag + #{show o};
+
+    return caut_status_ok;|]
 
 arrayDecoderBody :: String -> String
 arrayDecoderBody r = chompNewline [i|
@@ -56,7 +57,7 @@ arrayDecoderBody r = chompNewline [i|
 
     return caut_status_ok;|]
 
-vectorDecoderBody :: String -> String -> S.BuiltIn -> String
+vectorDecoderBody :: String -> String -> C.Tag -> String
 vectorDecoderBody n r lr = chompNewline [i|
     STATUS_CHECK(decode_#{lr}(_c_iter, &_c_obj->_length));
 
@@ -70,20 +71,36 @@ vectorDecoderBody n r lr = chompNewline [i|
 
     return caut_status_ok;|]
 
+enumerationDecoderBody :: String -> [S.EnumVal] -> C.Tag -> String
+enumerationDecoderBody _ [] _ = error "enumerationDecoderBody: enumerations must have at lesat one value."
+enumerationDecoderBody n vs t = chompNewline [i|
+    #{tag2c t} _c_tag;
+    STATUS_CHECK(#{tag2decodefn t}(_c_iter, &_c_tag));
+
+    if (#{lsym} < _c_tag) {
+      return caut_status_enumeration_out_of_range;
+    }
+
+    *_c_obj = (enum #{n})_c_tag;
+
+    return caut_status_ok;|]
+    where
+      lsym = [i|#{n}_#{S.enumValName (last vs)}|]
+
 recordDecoderBody :: [S.Field] -> String
 recordDecoderBody fs =
   let fencs = map (("    " ++) . decodeField) fs
       withReturn = fencs ++ ["", "    return caut_status_ok;"]
   in intercalate "\n" withReturn
 
-combinationDecoderBody :: String -> [S.Field] -> S.BuiltIn -> String
+combinationDecoderBody :: String -> [S.Field] -> C.Tag -> String
 combinationDecoderBody n fs fr =
   let decodeFlags = [i|    STATUS_CHECK(decode_#{fr}(_c_iter, &_c_obj->_flags));|] ++ "\n"
       checkFlags  = [i|    if (~COMBINATION_FLAGS_#{n} & _c_obj->_flags) { return caut_status_invalid_flags; }|]
       decodeFields = map decodeCombField fs
   in intercalate "\n" $ (decodeFlags : checkFlags : decodeFields) ++ ["", "    return caut_status_ok;"]
 
-unionDecoderBody :: String -> [S.Field] -> S.BuiltIn -> String
+unionDecoderBody :: String -> [S.Field] -> C.Tag -> String
 unionDecoderBody n fs tr = chompNewline [i|
     #{tr} _temp_tag;
     STATUS_CHECK(decode_#{tr}(_c_iter, &_temp_tag));
@@ -104,15 +121,15 @@ unionDecoderBody n fs tr = chompNewline [i|
 
 
 decodeField :: S.Field -> String
-decodeField S.Field { S.fName = n, S.fRef = r } =
+decodeField S.DataField { S.fieldName = n, S.fieldRef = r } =
   [i|STATUS_CHECK(decode_#{r}(_c_iter, &_c_obj->#{n}));|]
-decodeField S.EmptyField { S.fName = n, S.fIndex = ix } =
+decodeField S.EmptyField { S.fieldName = n, S.fieldIndex = ix } =
   [i|/* No data for field #{n} with index #{ix}. */|]
 
 decodeCombField :: S.Field -> String
 decodeCombField f@S.EmptyField {} = "    " ++ decodeField f
-decodeCombField f@S.Field { S.fIndex = ix } = chompNewline [i|
+decodeCombField f@S.DataField { S.fieldIndex = ix } = chompNewline [i|
     if (FSET(_c_obj->_flags, #{ix})) { #{decodeField f} }|]
 
 decodeUnionField :: String -> S.Field -> String
-decodeUnionField n f = [i|    case #{n}_tag_#{S.fName f}: #{decodeField f} break;|]
+decodeUnionField n f = [i|    case #{n}_tag_#{S.fieldName f}: #{decodeField f} break;|]

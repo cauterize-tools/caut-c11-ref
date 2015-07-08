@@ -5,8 +5,11 @@ module Cauterize.C11Ref.Util
   , len2c
   , len2tag
   , tag2c
+  , tag2decodefn
+  , tag2encodefn
   , chompNewline
   , comment
+  , ident2str
   ) where
 
 import Data.Text (unpack)
@@ -51,10 +54,22 @@ len2c 8 = "uint64_t";
 len2c e = error "len2c: invalid length " ++ show e ++ "."
 
 tag2c :: C.Tag -> String
-tag2c C.T1 = "uint8_t";
-tag2c C.T2 = "uint16_t";
-tag2c C.T4 = "uint32_t";
-tag2c C.T8 = "uint64_t";
+tag2c C.T1 = "caut_tag8_t";
+tag2c C.T2 = "caut_tag16_t";
+tag2c C.T4 = "caut_tag32_t";
+tag2c C.T8 = "caut_tag64_t";
+
+tag2decodefn :: C.Tag -> String
+tag2decodefn C.T1 = "decode_tag8";
+tag2decodefn C.T2 = "decode_tag16";
+tag2decodefn C.T4 = "decode_tag32";
+tag2decodefn C.T8 = "decode_tag64";
+
+tag2encodefn :: C.Tag -> String
+tag2encodefn C.T1 = "encode_tag8";
+tag2encodefn C.T2 = "encode_tag16";
+tag2encodefn C.T4 = "encode_tag32";
+tag2encodefn C.T8 = "encode_tag64";
 
 len2tag :: Integer -> String
 len2tag 1 = "u8";
@@ -71,3 +86,6 @@ comment :: String -> String
 comment s = [i|
   /* #{s} */
 |]
+
+ident2str :: C.Identifier -> String
+ident2str = unpack . C.unIdentifier

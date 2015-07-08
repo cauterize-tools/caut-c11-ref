@@ -5,7 +5,6 @@ module Cauterize.C11Ref.LibCFile.Comparators
 
 import Cauterize.C11Ref.Util
 import Data.String.Interpolate
-import Data.Text.Lazy (unpack)
 import Data.List (intercalate)
 import qualified Cauterize.CommonTypes as C
 import qualified Cauterize.Specification as S
@@ -23,22 +22,25 @@ typeCompare t = chompNewline [i|
 compareBody :: S.Type -> String
 compareBody t = b
   where
-    n = unpack $ S.typeName t
+    n = ident2str . S.typeName $ t
     b =
-      case t of
-        S.BuiltIn {} -> compareBuiltin
-        S.Synonym {} -> compareSynonym
-        S.Array { S.unArray = S.TArray { S.arrayRef = r } } -> compareArray (unpack r)
-        S.Vector { S.unVector = S.TVector { S.vectorRef = r } } -> compareVector (unpack r)
-        S.Record { S.unRecord = S.TRecord { S.recordFields = S.Fields fs } } -> compareRecord fs
-        S.Combination { S.unCombination = S.TCombination { S.combinationFields = S.Fields fs } } -> compareCombination fs
-        S.Union { S.unUnion = S.TUnion { S.unionFields = S.Fields { S.unFields = fs } } } -> compareUnion n fs
+      case S.typeDesc t of
+        S.Synonym { S.synonymRef = r } -> compareSynonym (ident2str r)
+        S.Range { S.rangePrim = p } -> compareRange p
+        S.Array {S.arrayRef = r } -> compareArray (ident2str r)
+        S.Vector { S.vectorRef = r } -> compareVector (ident2str r)
+        S.Enumeration {} -> compareEnumeration
+        S.Record { S.recordFields = fs } -> compareRecord fs
+        S.Combination { S.combinationFields = fs } -> compareCombination fs
+        S.Union { S.unionFields = fs } -> compareUnion n fs
 
-compareBuiltin :: String
-compareBuiltin = [i|    return CAUT_ORDER(*_c_a, *_c_b);|]
+compareSynonym :: String -> String
+compareSynonym rn = [i|    return compare_#{rn}#{(*_c_a, *_c_b);|]
 
-compareSynonym :: String
-compareSynonym = [i|    return CAUT_ORDER(*_c_a, *_c_b);|]
+compareRange :: C.Prim -> String
+compareRange p = [i|    return compare_#{p'}#{(*_c_a, *_c_b);|]
+  where
+    p' = ident2str . C.primToText $ p
 
 compareArray :: String -> String
 compareArray r = chompNewline [i|
@@ -61,6 +63,9 @@ compareVector r = chompNewline [i|
     }
 
     return CAUT_ORDER(_c_a->_length, _c_b->_length);|]
+
+compareEnumeration :: String
+compareEnumeration = [i|    return CAUT_ORDER(*_c_a, *_c_b);|]
 
 compareRecord :: [S.Field] -> String
 compareRecord fs = chompNewline [i|
@@ -101,8 +106,10 @@ compareUnion n fs = chompNewline [i|
     fieldComps = intercalate "\n" $ map (compareUnionField n) fs
 
 compareRecordField :: S.Field -> String
-compareRecordField S.EmptyField { S.fName = n }        = [i|    /* No comparison for empty field #{n} */|]
-compareRecordField S.Field { S.fName = n ,S.fRef = r } = [i|    if (caut_ord_eq != (_c_o = compare_#{r}(&_c_a->#{n}, &_c_b->#{n}))) { return _c_o; }|]
+compareRecordField S.EmptyField { S.fieldName = n }
+  = [i|    /* No comparison for empty field #{n} */|]
+compareRecordField S.DataField { S.fieldName = n ,S.fieldRef = r }
+  = [i|    if (caut_ord_eq != (_c_o = compare_#{r}(&_c_a->#{n}, &_c_b->#{n}))) { return _c_o; }|]
 
 compareCombinationField :: S.Field -> String
 compareCombinationField f = chompNewline [i|
@@ -115,10 +122,10 @@ compareCombinationField f = chompNewline [i|
       return caut_ord_lt;
     }|]
   where
-    n = S.fName f
-    ix = S.fIndex f
+    n = S.fieldName f
+    ix = S.fieldIndex f
     bothSetBody S.EmptyField {} = chompNewline [i|      /* No comparison for empty field #{n}. */|]
-    bothSetBody S.Field { S.fRef = r } = chompNewline [i|
+    bothSetBody S.DataField { S.fieldRef = r } = chompNewline [i|
       const enum caut_ord _c_o = compare_#{r}(&_c_a->#{n}, &_c_b->#{n});
       if (caut_ord_eq != _c_o) {
         return _c_o;
@@ -129,10 +136,11 @@ compareUnionField tname f = chompNewline [i|
     case #{tname}_tag_#{n}:
 #{compBody f}|]
   where
-    n = S.fName f
+    n = S.fieldName f
     compBody S.EmptyField {} = chompNewline [i|
       _c_o = caut_ord_eq; /* No comparison for empty field #{n} */
       break;|]
-    compBody S.Field { S.fRef = r } = chompNewline [i|
+
+    compBody S.DataField { S.fieldRef = r } = chompNewline [i|
       _c_o = compare_#{r}(&_c_a->#{n}, &_c_b->#{n});
       break;|]
