@@ -14,9 +14,12 @@ import Data.String.Interpolate
 import Data.String.Interpolate.Util
 import Data.Text (unpack)
 import Data.Word
+import Data.Maybe
 import Numeric
+import qualified Data.Map as M
 import qualified Cauterize.Hash as H
 import qualified Cauterize.Specification as S
+import qualified Cauterize.CommonTypes as C
 
 cFileFromSpec :: S.Specification -> String
 cFileFromSpec = unindent . concat . fromSpec
@@ -35,7 +38,7 @@ fromSpec s = [chompNewline [i|
   , blankLine
 
   , comment "type encoders"
-  , unlines (map typeEncoder types)
+  , unlines (map (typeEncoder ident2decl) types)
   , blankLine
 
   , comment "type decoders"
@@ -59,6 +62,14 @@ fromSpec s = [chompNewline [i|
   , blankLine
   ]
   where
+    tDeclMap = fmap t2decl $ S.specTypeMap s
+    ident2decl i =
+      case i `M.lookup` primDeclMap of
+       Just d -> d
+       Nothing ->
+         case i `M.lookup` tDeclMap of
+          Just d -> d
+          Nothing -> error $ "fromSpec: could not find type " ++ (unpack . C.unIdentifier) i ++ " in specification or primitives"
     types = S.specTypes s
     ln = unpack $ S.specName s
     blankLine = "\n"

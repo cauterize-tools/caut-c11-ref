@@ -102,20 +102,20 @@ size_t caut_decode_iter_remaining(const struct caut_decode_iter * const iter);
 
 
 
-enum caut_status __caut_encode_s8(struct caut_encode_iter * const iter, int8_t const * const obj);
-enum caut_status __caut_encode_s16(struct caut_encode_iter * const iter, int16_t const * const obj);
-enum caut_status __caut_encode_s32(struct caut_encode_iter * const iter, int32_t const * const obj);
-enum caut_status __caut_encode_s64(struct caut_encode_iter * const iter, int64_t const * const obj);
+enum caut_status encode_s8(struct caut_encode_iter * const iter, int8_t const * const obj);
+enum caut_status encode_s16(struct caut_encode_iter * const iter, int16_t const * const obj);
+enum caut_status encode_s32(struct caut_encode_iter * const iter, int32_t const * const obj);
+enum caut_status encode_s64(struct caut_encode_iter * const iter, int64_t const * const obj);
 
-enum caut_status __caut_encode_u8(struct caut_encode_iter * const iter, uint8_t const * const obj);
-enum caut_status __caut_encode_u16(struct caut_encode_iter * const iter, uint16_t const * const obj);
-enum caut_status __caut_encode_u32(struct caut_encode_iter * const iter, uint32_t const * const obj);
-enum caut_status __caut_encode_u64(struct caut_encode_iter * const iter, uint64_t const * const obj);
+enum caut_status encode_u8(struct caut_encode_iter * const iter, uint8_t const * const obj);
+enum caut_status encode_u16(struct caut_encode_iter * const iter, uint16_t const * const obj);
+enum caut_status encode_u32(struct caut_encode_iter * const iter, uint32_t const * const obj);
+enum caut_status encode_u64(struct caut_encode_iter * const iter, uint64_t const * const obj);
 
-enum caut_status __caut_encode_f32(struct caut_encode_iter * const iter, float const * const obj);
-enum caut_status __caut_encode_f64(struct caut_encode_iter * const iter, double const * const obj);
+enum caut_status encode_f32(struct caut_encode_iter * const iter, float const * const obj);
+enum caut_status encode_f64(struct caut_encode_iter * const iter, double const * const obj);
 
-enum caut_status __caut_encode_bool(struct caut_encode_iter * const iter, bool const * const obj);
+enum caut_status encode_bool(struct caut_encode_iter * const iter, bool const * const obj);
 
 enum caut_status __caut_encode_null_bytes(struct caut_encode_iter * const iter, size_t count);
 
@@ -126,23 +126,28 @@ enum caut_status __caut_encode_raw_bytes(struct caut_encode_iter * const iter, u
 
 
 
-enum caut_status __caut_decode_s8(struct caut_decode_iter * const iter, int8_t * const obj);
-enum caut_status __caut_decode_s16(struct caut_decode_iter * const iter, int16_t * const obj);
-enum caut_status __caut_decode_s32(struct caut_decode_iter * const iter, int32_t * const obj);
-enum caut_status __caut_decode_s64(struct caut_decode_iter * const iter, int64_t * const obj);
+enum caut_status decode_s8(struct caut_decode_iter * const iter, int8_t * const obj);
+enum caut_status decode_s16(struct caut_decode_iter * const iter, int16_t * const obj);
+enum caut_status decode_s32(struct caut_decode_iter * const iter, int32_t * const obj);
+enum caut_status decode_s64(struct caut_decode_iter * const iter, int64_t * const obj);
 
-enum caut_status __caut_decode_u8(struct caut_decode_iter * const iter, uint8_t * const obj);
-enum caut_status __caut_decode_u16(struct caut_decode_iter * const iter, uint16_t * const obj);
-enum caut_status __caut_decode_u32(struct caut_decode_iter * const iter, uint32_t * const obj);
-enum caut_status __caut_decode_u64(struct caut_decode_iter * const iter, uint64_t * const obj);
+enum caut_status decode_u8(struct caut_decode_iter * const iter, uint8_t * const obj);
+enum caut_status decode_u16(struct caut_decode_iter * const iter, uint16_t * const obj);
+enum caut_status decode_u32(struct caut_decode_iter * const iter, uint32_t * const obj);
+enum caut_status decode_u64(struct caut_decode_iter * const iter, uint64_t * const obj);
 
-enum caut_status __caut_decode_f32(struct caut_decode_iter * const iter, float * const obj);
-enum caut_status __caut_decode_f64(struct caut_decode_iter * const iter, double * const obj);
+enum caut_status decode_f32(struct caut_decode_iter * const iter, float * const obj);
+enum caut_status decode_f64(struct caut_decode_iter * const iter, double * const obj);
 
-enum caut_status __caut_decode_bool(struct caut_decode_iter * const iter, bool * const obj);
+enum caut_status decode_bool(struct caut_decode_iter * const iter, bool * const obj);
 
 enum caut_status __caut_decode_and_ignore_bytes(struct caut_decode_iter * const iter, size_t count);
 
 enum caut_status __caut_decode_raw_bytes(struct caut_decode_iter * const iter, uint8_t * const bytes, size_t len);
+
+enum caut_status encode_tag8(struct caut_encode_iter * const iter, uint8_t const * const obj);
+enum caut_status encode_tag16(struct caut_encode_iter * const iter, uint16_t const * const obj);
+enum caut_status encode_tag12(struct caut_encode_iter * const iter, uint32_t const * const obj);
+enum caut_status encode_tag14(struct caut_encode_iter * const iter, uint64_t const * const obj);
 
 #endif /* _CAUTERIZE_H_ */

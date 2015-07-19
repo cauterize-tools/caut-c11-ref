@@ -9,23 +9,23 @@ import Data.List (intercalate)
 import qualified Cauterize.CommonTypes as C
 import qualified Cauterize.Specification as S
 
-typeEncoder :: S.Type -> String
-typeEncoder t = chompNewline [i|
+typeEncoder :: (C.Identifier -> String) -> S.Type -> String
+typeEncoder ident2decl t = chompNewline [i|
   R encode_#{name}(EI * const _c_iter, #{decl} const * const _c_obj) {
-#{encoderBody t}
+#{encoderBody ident2decl t}
   }
 |]
   where
-    name = ident2str $ S.typeName t
+    name = ident2decl $ S.typeName t
     decl = t2decl t
 
-encoderBody :: S.Type -> String
-encoderBody t = b
+encoderBody :: (C.Identifier -> String) -> S.Type -> String
+encoderBody ident2decl t = b
   where
     n = ident2str $ S.typeName t
     b = case S.typeDesc t of
           S.Synonym { S.synonymRef = r } ->
-            synonymEncoderBody (ident2str r)
+            synonymEncoderBody (ident2decl r)
           S.Range { S.rangeOffset = o, S.rangeLength = l, S.rangeTag = rt } ->
             rangeEncoderBody o l rt
           S.Array { S.arrayRef = r } ->
@@ -42,7 +42,7 @@ encoderBody t = b
             unionEncoderBody n fs tr
 
 synonymEncoderBody :: String -> String
-synonymEncoderBody r = [i|    return __caut_encode_#{r}(_c_iter, (#{r} *)_c_obj);|]
+synonymEncoderBody r = [i|    return encode_#{r}(_c_iter, (#{r} *)_c_obj);|]
 
 rangeEncoderBody :: C.Offset -> C.Length -> C.Tag -> String
 rangeEncoderBody o l t = chompNewline [i|
@@ -117,7 +117,7 @@ combinationEncoderBody n fs fr =
 
 unionEncoderBody :: String -> [S.Field] -> C.Tag -> String
 unionEncoderBody n fs tr = chompNewline [i|
-    #{tr} _temp_tag = (#{tr})_c_obj->_tag;
+    #{tag2c tr} _temp_tag = (#{tag2c tr})_c_obj->_tag;
 
     if (_temp_tag >= UNION_NUM_FIELDS_#{n}) {
       return caut_status_invalid_tag;
@@ -145,4 +145,4 @@ encodeCombField f@S.DataField { S.fieldIndex = ix } = chompNewline [i|
     if (FSET(_c_obj->_flags, #{ix})) { #{encodeField f} }|]
 
 encodeUnionField :: String -> S.Field -> String
-encodeUnionField n f = [i|    case #{n}_tag_#{S.fieldName f}: #{encodeField f} break;|]
+encodeUnionField n f = [i|    case #{n}_tag_#{ident2str $ S.fieldName f}: #{encodeField f} break;|]

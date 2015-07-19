@@ -102,14 +102,14 @@ static void caut_decode_iter_advance(U * const iter, size_t adv) {
   } while (0)
 
 #define GENERIC_PACK(CAUT_TYPE, C_TYPE) \
-enum caut_status __caut_encode_##CAUT_TYPE(P * const iter, C_TYPE const * const obj) { \
+enum caut_status ncode_##CAUT_TYPE(P * const iter, C_TYPE const * const obj) { \
   CAUT_ASSERT(iter); \
   CAUT_ASSERT(obj); \
   MEMMOVE_PACK(iter, obj); \
 }
 
 #define GENERIC_UNPACK(CAUT_TYPE, C_TYPE) \
-enum caut_status __caut_decode_##CAUT_TYPE(U * const iter, C_TYPE * const obj) { \
+enum caut_status ecode_##CAUT_TYPE(U * const iter, C_TYPE * const obj) { \
   CAUT_ASSERT(iter); \
   CAUT_ASSERT(obj); \
   MEMMOVE_UNPACK(iter, obj); \
@@ -128,7 +128,7 @@ GENERIC_PACK(u64, uint64_t)
 GENERIC_PACK(f32, float)
 GENERIC_PACK(f64, double)
 
-enum caut_status __caut_encode_bool(P * const iter, bool const * const obj) {
+enum caut_status encode_bool(P * const iter, bool const * const obj) {
   CAUT_ASSERT(iter);
   CAUT_ASSERT(obj);
   MEMMOVE_PACK(iter, (uint8_t*)obj);
@@ -207,3 +207,20 @@ enum caut_status __caut_decode_raw_bytes(struct caut_decode_iter * const iter, u
 
   return caut_status_ok;
 }
+
+enum caut_status encode_tag8(struct caut_encode_iter * const iter, uint8_t const * const obj) {
+  return encode_u8(iter, obj);
+}
+
+enum caut_status encode_tag16(struct caut_encode_iter * const iter, uint16_t const * const obj) {
+  return encode_u16(iter, obj);
+}
+
+enum caut_status encode_tag12(struct caut_encode_iter * const iter, uint32_t const * const obj) {
+  return encode_u32(iter, obj);
+}
+
+enum caut_status encode_tag14(struct caut_encode_iter * const iter, uint64_t const * const obj) {
+  return encode_u64(iter, obj);
+}
+

@@ -16,7 +16,7 @@ typeCompare t = chompNewline [i|
   }
 |]
   where
-    name = S.typeName t
+    name = ident2str $ S.typeName t
     decl = t2decl t
 
 compareBody :: S.Type -> String

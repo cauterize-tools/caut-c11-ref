@@ -69,8 +69,6 @@ fromSpec s = [chompNewline [i|
       let withIndex = zip [(0 :: Integer)..] types
       in intercalate "\n" $ map (\(ix,t) -> [i|    type_index_#{ln}_#{ident2str $ S.typeName t} = #{ix},|]) withIndex
 
-    primDeclMap = fmap prim2c C.primMap
-
     -- Names to how you delcare that name
     n2declMap = let s' = S.specTypes s
                     d = map t2decl s'

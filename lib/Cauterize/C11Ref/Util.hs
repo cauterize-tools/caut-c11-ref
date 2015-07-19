@@ -10,12 +10,14 @@ module Cauterize.C11Ref.Util
   , chompNewline
   , comment
   , ident2str
+  , primDeclMap
   ) where
 
 import Data.Text (unpack)
 import Data.String.Interpolate
 import qualified Cauterize.CommonTypes as C
 import qualified Cauterize.Specification as S
+import qualified Data.Map as M
 
 prim2c :: C.Prim -> String
 prim2c C.PU8   = "uint8_t"
@@ -89,3 +91,6 @@ comment s = [i|
 
 ident2str :: C.Identifier -> String
 ident2str = unpack . C.unIdentifier
+
+primDeclMap :: M.Map C.Identifier String
+primDeclMap = fmap prim2c C.primMap
