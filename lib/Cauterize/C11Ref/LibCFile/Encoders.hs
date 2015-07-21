@@ -16,7 +16,7 @@ typeEncoder ident2decl t = chompNewline [i|
   }
 |]
   where
-    name = ident2decl $ S.typeName t
+    name = C.unIdentifier $ S.typeName t
     decl = t2decl t
 
 encoderBody :: (C.Identifier -> String) -> S.Type -> String
@@ -25,9 +25,9 @@ encoderBody ident2decl t = b
     n = ident2str $ S.typeName t
     b = case S.typeDesc t of
           S.Synonym { S.synonymRef = r } ->
-            synonymEncoderBody (ident2decl r)
-          S.Range { S.rangeOffset = o, S.rangeLength = l, S.rangeTag = rt } ->
-            rangeEncoderBody o l rt
+            synonymEncoderBody r (ident2decl r)
+          S.Range { S.rangeOffset = o, S.rangeLength = l, S.rangeTag = rt, S.rangePrim = rp } ->
+            rangeEncoderBody o l rt rp
           S.Array { S.arrayRef = r } ->
             arrayEncoderBody (ident2str r)
           S.Vector { S.vectorRef = r, S.vectorTag = lr } ->
@@ -41,14 +41,14 @@ encoderBody ident2decl t = b
           S.Union { S.unionFields = fs, S.unionTag = tr } ->
             unionEncoderBody n fs tr
 
-synonymEncoderBody :: String -> String
-synonymEncoderBody r = [i|    return encode_#{r}(_c_iter, (#{r} *)_c_obj);|]
+synonymEncoderBody :: C.Identifier -> String -> String
+synonymEncoderBody r rdec = [i|    return encode_#{ident2str r}(_c_iter, (#{rdec} *)_c_obj);|]
 
-rangeEncoderBody :: C.Offset -> C.Length -> C.Tag -> String
-rangeEncoderBody o l t = chompNewline [i|
+rangeEncoderBody :: C.Offset -> C.Length -> C.Tag -> C.Prim -> String
+rangeEncoderBody o l t p = chompNewline [i|
     #{tagt} _c_tag;
 
-    if (*_c_obj < #{rmin} || #{rmax} < *_c_obj) {
+    if (*_c_obj < #{rmin}#{prim2suffix p} || #{rmax}#{prim2suffix p} < *_c_obj) {
       return caut_status_range_out_of_bounds;
     }
 
@@ -84,23 +84,26 @@ vectorEncoderBody n r lr = chompNewline [i|
 
     return caut_status_ok;|]
 
+-- NOTE: We don't check if _c_obj is less than zero because we assume that the
+-- enumeration variable will be treated as unsigned. If we ever switch to
+-- signed enumerations (values less than zero), we'll have to revisit this.
 enumerationEncoderBody :: String -> [S.EnumVal] -> C.Tag -> String
-enumerationEncoderBody _ [] _ = error "enumerationEncoderBody: enumerations must have at least one value."
-enumerationEncoderBody n vs t = chompNewline [i|
+enumerationEncoderBody n [] _ = error $ "enumerationEncoderBody: enumeration '" ++ n ++ "' must have at least one value."
+enumerationEncoderBody n _ t = chompNewline [i|
     #{tagt} _c_tag;
 
-    if (*_c_obj < 0 || #{lsym} < *_c_obj) {
+    if (#{lsym} < *_c_obj) {
       return caut_status_enumeration_out_of_range;
     }
 
     _c_tag = (#{tagt})_c_obj;
 
-    STATUS_CHECK(#{tag2encodefn t}(_c_iter, &_c_obj->_length));
+    STATUS_CHECK(#{tag2encodefn t}(_c_iter, &_c_tag));
 
     return caut_status_ok;|]
   where
     tagt = tag2c t
-    lsym = [i|#{n}_#{S.enumValName (last vs)}|]
+    lsym = "ENUM_MAX_VAL_" ++ n
 
 recordEncoderBody :: [S.Field] -> String
 recordEncoderBody fs =

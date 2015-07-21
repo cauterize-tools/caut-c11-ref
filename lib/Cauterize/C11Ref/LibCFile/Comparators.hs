@@ -9,8 +9,8 @@ import Data.List (intercalate)
 import qualified Cauterize.CommonTypes as C
 import qualified Cauterize.Specification as S
 
-typeCompare :: S.Type -> String
-typeCompare t = chompNewline [i|
+typeCompare :: (C.Identifier -> String) -> S.Type -> String
+typeCompare ident2decl t = chompNewline [i|
   enum caut_ord compare_#{name}(#{decl} const * const _c_a, #{decl} const * const _c_b) {
 #{compareBody t}
   }
@@ -35,10 +35,10 @@ compareBody t = b
         S.Union { S.unionFields = fs } -> compareUnion n fs
 
 compareSynonym :: String -> String
-compareSynonym rn = [i|    return compare_#{rn}#{(*_c_a, *_c_b);|]
+compareSynonym rn = [i|    return compare_#{rn}(_c_a, _c_b);|]
 
 compareRange :: C.Prim -> String
-compareRange p = [i|    return compare_#{p'}#{(*_c_a, *_c_b);|]
+compareRange p = [i|    return compare_#{p'}(_c_a, _c_b);|]
   where
     p' = ident2str . C.primToText $ p
 
@@ -107,9 +107,9 @@ compareUnion n fs = chompNewline [i|
 
 compareRecordField :: S.Field -> String
 compareRecordField S.EmptyField { S.fieldName = n }
-  = [i|    /* No comparison for empty field #{n} */|]
+  = [i|    /* No comparison for empty field #{ident2str n} */|]
 compareRecordField S.DataField { S.fieldName = n ,S.fieldRef = r }
-  = [i|    if (caut_ord_eq != (_c_o = compare_#{r}(&_c_a->#{n}, &_c_b->#{n}))) { return _c_o; }|]
+  = [i|    if (caut_ord_eq != (_c_o = compare_#{ident2str r}(&_c_a->#{ident2str n}, &_c_b->#{ident2str n}))) { return _c_o; }|]
 
 compareCombinationField :: S.Field -> String
 compareCombinationField f = chompNewline [i|
@@ -124,23 +124,23 @@ compareCombinationField f = chompNewline [i|
   where
     n = S.fieldName f
     ix = S.fieldIndex f
-    bothSetBody S.EmptyField {} = chompNewline [i|      /* No comparison for empty field #{n}. */|]
+    bothSetBody S.EmptyField {} = chompNewline [i|      /* No comparison for empty field #{ident2str n}. */|]
     bothSetBody S.DataField { S.fieldRef = r } = chompNewline [i|
-      const enum caut_ord _c_o = compare_#{r}(&_c_a->#{n}, &_c_b->#{n});
+      const enum caut_ord _c_o = compare_#{ident2str r}(&_c_a->#{ident2str n}, &_c_b->#{ident2str n});
       if (caut_ord_eq != _c_o) {
         return _c_o;
       }|]
 
 compareUnionField :: String -> S.Field -> String
 compareUnionField tname f = chompNewline [i|
-    case #{tname}_tag_#{n}:
+    case #{tname}_tag_#{ident2str n}:
 #{compBody f}|]
   where
     n = S.fieldName f
     compBody S.EmptyField {} = chompNewline [i|
-      _c_o = caut_ord_eq; /* No comparison for empty field #{n} */
+      _c_o = caut_ord_eq; /* No comparison for empty field #{ident2str n} */
       break;|]
 
     compBody S.DataField { S.fieldRef = r } = chompNewline [i|
-      _c_o = compare_#{r}(&_c_a->#{n}, &_c_b->#{n});
+      _c_o = compare_#{ident2str r}(&_c_a->#{ident2str n}, &_c_b->#{ident2str n});
       break;|]

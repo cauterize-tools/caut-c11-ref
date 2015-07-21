@@ -24,8 +24,6 @@ caut2c11 (Caut2C11Opts { specFile = sf, outputDirectory = od }) = createGuard od
   spec <- loadSpec
   let baseName = unpack $ Sp.specName spec
 
-  print spec
-
   copyStaticFilesTo od
   generateDynamicFiles od baseName spec
   where

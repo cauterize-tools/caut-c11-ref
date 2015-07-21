@@ -9,23 +9,23 @@ import Data.List (intercalate)
 import qualified Cauterize.CommonTypes as C
 import qualified Cauterize.Specification as S
 
-typeDecoder :: S.Type -> String
-typeDecoder t = chompNewline [i|
+typeDecoder :: (C.Identifier -> String) -> S.Type -> String
+typeDecoder ident2decl t = chompNewline [i|
   R decode_#{name}(DI * const _c_iter, #{decl} * const _c_obj) {
-#{decoderBody t}
+#{decoderBody ident2decl t}
   }
 |]
   where
     name = ident2str $ S.typeName t
     decl = t2decl t
 
-decoderBody :: S.Type -> String
-decoderBody t = b
+decoderBody :: (C.Identifier -> String) -> S.Type -> String
+decoderBody ident2decl t = b
   where
     n = ident2str $ S.typeName t
     b = case S.typeDesc t of
-          S.Synonym { S.synonymRef = r } -> synonymDecoderBody (ident2str r)
-          S.Range { S.rangeOffset = o, S.rangeLength = l, S.rangeTag = rt } -> rangeDecoderBody o l rt
+          S.Synonym { S.synonymRef = r } -> synonymDecoderBody ident2decl r
+          S.Range { S.rangeOffset = o, S.rangeLength = l, S.rangeTag = rt, S.rangePrim = rp } -> rangeDecoderBody o l rt rp
           S.Array { S.arrayRef = r } -> arrayDecoderBody (ident2str r)
           S.Vector { S.vectorRef = r, S.vectorTag = lr } -> vectorDecoderBody n (ident2str r) lr
           S.Enumeration { S.enumerationValues = vs, S.enumerationTag = et } -> enumerationDecoderBody n vs et
@@ -33,15 +33,15 @@ decoderBody t = b
           S.Combination { S.combinationFields = fs, S.combinationTag = fr } -> combinationDecoderBody n fs fr
           S.Union { S.unionFields = fs , S.unionTag = tr } -> unionDecoderBody n fs tr
 
-synonymDecoderBody :: String -> String
-synonymDecoderBody r = [i|    return decode_#{r}(_c_iter, (#{r} *)_c_obj);|]
+synonymDecoderBody :: (C.Identifier -> String) -> C.Identifier -> String
+synonymDecoderBody ident2decl r = [i|    return decode_#{ident2str r}(_c_iter, (#{ident2decl r} *)_c_obj);|]
 
-rangeDecoderBody :: C.Offset -> C.Length -> C.Tag -> String
-rangeDecoderBody o l t = chompNewline [i|
+rangeDecoderBody :: C.Offset -> C.Length -> C.Tag -> C.Prim -> String
+rangeDecoderBody o l t p = chompNewline [i|
     #{tag2c t} _c_tag;
     STATUS_CHECK(#{tag2decodefn t}(_c_iter, &_c_tag));
 
-    if (_c_tag > #{show l}) {
+    if (_c_tag > #{show l}#{prim2suffix p}) {
       return caut_status_range_out_of_bounds;
     }
 
@@ -73,7 +73,7 @@ vectorDecoderBody n r lr = chompNewline [i|
 
 enumerationDecoderBody :: String -> [S.EnumVal] -> C.Tag -> String
 enumerationDecoderBody _ [] _ = error "enumerationDecoderBody: enumerations must have at lesat one value."
-enumerationDecoderBody n vs t = chompNewline [i|
+enumerationDecoderBody n _ t = chompNewline [i|
     #{tag2c t} _c_tag;
     STATUS_CHECK(#{tag2decodefn t}(_c_iter, &_c_tag));
 
@@ -85,7 +85,7 @@ enumerationDecoderBody n vs t = chompNewline [i|
 
     return caut_status_ok;|]
   where
-    lsym = [i|#{n}_#{S.enumValName (last vs)}|]
+    lsym = "ENUM_MAX_VAL_" ++ n
 
 recordDecoderBody :: [S.Field] -> String
 recordDecoderBody fs =
@@ -102,7 +102,7 @@ combinationDecoderBody n fs fr =
 
 unionDecoderBody :: String -> [S.Field] -> C.Tag -> String
 unionDecoderBody n fs tr = chompNewline [i|
-    #{tr} _temp_tag;
+    #{tag2c tr} _temp_tag;
     STATUS_CHECK(#{tag2decodefn tr}(_c_iter, &_temp_tag));
 
     if (_temp_tag >= UNION_NUM_FIELDS_#{n}) {
@@ -122,7 +122,7 @@ unionDecoderBody n fs tr = chompNewline [i|
 
 decodeField :: S.Field -> String
 decodeField S.DataField { S.fieldName = n, S.fieldRef = r } =
-  [i|STATUS_CHECK(decode_#{r}(_c_iter, &_c_obj->#{n}));|]
+  [i|STATUS_CHECK(decode_#{ident2str r}(_c_iter, &_c_obj->#{ident2str n}));|]
 decodeField S.EmptyField { S.fieldName = n, S.fieldIndex = ix } =
   [i|/* No data for field #{n} with index #{ix}. */|]
 
@@ -132,4 +132,4 @@ decodeCombField f@S.DataField { S.fieldIndex = ix } = chompNewline [i|
     if (FSET(_c_obj->_flags, #{ix})) { #{decodeField f} }|]
 
 decodeUnionField :: String -> S.Field -> String
-decodeUnionField n f = [i|    case #{n}_tag_#{S.fieldName f}: #{decodeField f} break;|]
+decodeUnionField n f = [i|    case #{n}_tag_#{ident2str $ S.fieldName f}: #{decodeField f} break;|]

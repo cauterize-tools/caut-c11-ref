@@ -141,15 +141,20 @@ defVector n refDecl len lenRep =
 |]
 
 defEnum :: String -> [S.EnumVal] -> String
-defEnum n vs = chompNewline [i|
+defEnum n [] = error $ "defEnum: enumeration '" ++ n ++ "' must have at least one value."
+defEnum n vs =
+  let maxValSym = [i|ENUM_MAX_VAL_#{n}|]
+      lsym = [i|#{n}_#{ident2str $ S.enumValName (last vs)}|]
+  in chompNewline [i|
+  #define #{maxValSym} (#{lsym})
   enum #{n} {
     #{vdefs}
   };
 |]
   where
-    vdefs = intercalate "\n      " $ map defVal vs
+    vdefs = intercalate "\n    " $ map defVal vs
     defVal (S.EnumVal vn ix) = let vn' = unpack . C.unIdentifier $ vn
-                              in [i|#{n}_#{vn'} = #{show ix}|]
+                              in [i|#{n}_#{vn'} = #{show ix},|]
 
 defRecord :: String -> (C.Identifier -> String) -> [S.Field] -> String
 defRecord n refDecl fields = chompNewline [i|

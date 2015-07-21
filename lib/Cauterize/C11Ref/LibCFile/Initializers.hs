@@ -9,38 +9,38 @@ import Data.List (intercalate)
 import qualified Cauterize.CommonTypes as C
 import qualified Cauterize.Specification as S
 
-typeInit :: S.Type -> String
-typeInit t = chompNewline [i|
+typeInit :: (C.Identifier -> String) -> S.Type -> String
+typeInit ident2decl t = chompNewline [i|
   void init_#{name}(#{decl} * _c_obj) {
-#{initBody t}
+#{initBody ident2decl t}
   }
 |]
   where
     name = ident2str $ S.typeName t
     decl = t2decl t
 
-initBody :: S.Type -> String
-initBody t = b
+initBody :: (C.Identifier -> String) -> S.Type -> String
+initBody ident2decl t = b
   where
     n = ident2str . S.typeName $ t
     b =
       case S.typeDesc t of
-        S.Synonym {} -> initSynonym
+        S.Synonym { S.synonymRef = r} -> initSynonym r
         S.Range { S.rangeOffset = o } -> initRange o
         S.Array { S.arrayRef = r } -> initArray (ident2str r)
         S.Vector {} -> initVector
-        S.Enumeration { S.enumerationValues = vs } -> initEnumeration vs
+        S.Enumeration { S.enumerationValues = vs } -> initEnumeration n vs
         S.Record { S.recordFields = fs } -> initRecord fs
         S.Combination {} -> initCombination
         S.Union { S.unionFields = fs
-                , S.unionTag = tr } -> initUnion n (show tr) fs
+                , S.unionTag = tr } -> initUnion n tr fs
 
 initRange :: C.Offset -> String
 initRange o = [i|    *_c_obj = #{show o};|]
 
-initSynonym :: String
-initSynonym = chompNewline [i|
-    *_c_obj = 0;|]
+initSynonym :: C.Identifier -> String
+initSynonym r = chompNewline [i|
+    init_#{ident2str r}(_c_obj);|]
 
 initArray :: String -> String
 initArray r = chompNewline [i|
@@ -52,9 +52,9 @@ initVector :: String
 initVector = chompNewline [i|
     _c_obj->_length = 0;|]
 
-initEnumeration :: [S.EnumVal] -> String
-initEnumeration [] = error "initEnumeration: enumerations must have at least one value."
-initEnumeration (S.EnumVal v _:_) = [i|    *_c_obj = #{ident2str v};|]
+initEnumeration :: String -> [S.EnumVal] -> String
+initEnumeration _ [] = error "initEnumeration: enumerations must have at least one value."
+initEnumeration n (S.EnumVal v _:_) = [i|    *_c_obj = #{n}_#{ident2str v};|]
 
 initRecord :: [S.Field] -> String
 initRecord fs = intercalate "\n" $ map initField fs
@@ -63,16 +63,16 @@ initCombination :: String
 initCombination = chompNewline [i|
     _c_obj->_flags = 0;|]
 
-initUnion :: String -> String -> [S.Field] -> String
+initUnion :: String -> C.Tag -> [S.Field] -> String
 initUnion _ _ [] = ""
 initUnion n rep (f:_) = chompNewline [i|
-    _c_obj->_tag = (#{rep}) #{n}_tag_#{fn};
+    _c_obj->_tag = (#{tag2c rep}) #{n}_tag_#{ident2str fn};
 #{initField f}|]
   where
     fn = S.fieldName f
 
 initField :: S.Field -> String
 initField S.EmptyField { S.fieldName = n }
-  = [i|    /* No initializer for empty field #{n} */|]
+  = [i|    /* No initializer for empty field #{ident2str n} */|]
 initField S.DataField { S.fieldName = n ,S.fieldRef = r }
-  = [i|    init_#{r}(&_c_obj->#{n});|]
+  = [i|    init_#{ident2str r}(&_c_obj->#{ident2str n});|]

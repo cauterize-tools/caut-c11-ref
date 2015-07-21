@@ -30,7 +30,7 @@ messageInterfaceFromSpec s = chompNewline [i|
 
   R decode_message_header_#{ln}(DI * const _iter, struct message_header_#{ln} * const _header) {
     #{lenDecl} length = 0;
-    STATUS_CHECK(__caut_decode_#{lenBi}(_iter, &length));
+    STATUS_CHECK(decode_#{lenBi}(_iter, &length));
     _header->length = length;
     STATUS_CHECK(__caut_decode_raw_bytes(_iter, _header->tag, sizeof(_header->tag)));
 

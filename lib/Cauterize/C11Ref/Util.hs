@@ -1,6 +1,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 module Cauterize.C11Ref.Util
   ( prim2c
+  , prim2suffix
   , t2decl
   , len2c
   , len2tag
@@ -31,6 +32,19 @@ prim2c C.PS64  = "int64_t"
 prim2c C.PF32  = "float"
 prim2c C.PF64  = "double"
 prim2c C.PBool = "bool"
+
+prim2suffix :: C.Prim -> String
+prim2suffix C.PU8   = ""
+prim2suffix C.PU16  = ""
+prim2suffix C.PU32  = "lu"
+prim2suffix C.PU64  = "llu"
+prim2suffix C.PS8   = ""
+prim2suffix C.PS16  = ""
+prim2suffix C.PS32  = "l"
+prim2suffix C.PS64  = "ll"
+prim2suffix C.PF32  = "f"
+prim2suffix C.PF64  = ""
+prim2suffix C.PBool = ""
 
 t2decl :: S.Type -> String
 t2decl (S.Type { S.typeName = tname, S.typeDesc = t}) =

@@ -42,15 +42,15 @@ fromSpec s = [chompNewline [i|
   , blankLine
 
   , comment "type decoders"
-  , unlines (map typeDecoder types)
+  , unlines (map (typeDecoder ident2decl) types)
   , blankLine
 
   , comment "type initializers"
-  , unlines (map typeInit types)
+  , unlines (map (typeInit ident2decl) types)
   , blankLine
 
   , comment "type comparators"
-  , unlines (map typeCompare types)
+  , unlines (map (typeCompare ident2decl) types)
   , blankLine
 
   -- TODO: order_
@@ -62,14 +62,19 @@ fromSpec s = [chompNewline [i|
   , blankLine
   ]
   where
-    tDeclMap = fmap t2decl $ S.specTypeMap s
-    ident2decl i =
-      case i `M.lookup` primDeclMap of
-       Just d -> d
-       Nothing ->
-         case i `M.lookup` tDeclMap of
-          Just d -> d
-          Nothing -> error $ "fromSpec: could not find type " ++ (unpack . C.unIdentifier) i ++ " in specification or primitives"
+    tDeclMap = fmap t2decl (S.specTypeMap s)
+
+    primDec :: C.Identifier -> String
+    primDec ident = fromMaybe (tyDec ident) (ident `M.lookup` primDeclMap)
+
+    tyDec :: C.Identifier -> String
+    tyDec ident = fromMaybe
+                    (error $ "fromSpec: could not find type " ++ (unpack . C.unIdentifier) ident ++ " in specification or primitives")
+                    (ident `M.lookup` tDeclMap)
+
+    -- translate an identifier to its declaration
+    ident2decl = primDec
+
     types = S.specTypes s
     ln = unpack $ S.specName s
     blankLine = "\n"

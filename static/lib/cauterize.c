@@ -102,14 +102,14 @@ static void caut_decode_iter_advance(U * const iter, size_t adv) {
   } while (0)
 
 #define GENERIC_PACK(CAUT_TYPE, C_TYPE) \
-enum caut_status ncode_##CAUT_TYPE(P * const iter, C_TYPE const * const obj) { \
+enum caut_status encode_##CAUT_TYPE(P * const iter, C_TYPE const * const obj) { \
   CAUT_ASSERT(iter); \
   CAUT_ASSERT(obj); \
   MEMMOVE_PACK(iter, obj); \
 }
 
 #define GENERIC_UNPACK(CAUT_TYPE, C_TYPE) \
-enum caut_status ecode_##CAUT_TYPE(U * const iter, C_TYPE * const obj) { \
+enum caut_status decode_##CAUT_TYPE(U * const iter, C_TYPE * const obj) { \
   CAUT_ASSERT(iter); \
   CAUT_ASSERT(obj); \
   MEMMOVE_UNPACK(iter, obj); \
@@ -148,7 +148,7 @@ GENERIC_UNPACK(u64, uint64_t)
 GENERIC_UNPACK(f32, float)
 GENERIC_UNPACK(f64, double)
 
-enum caut_status __caut_decode_bool(U * const iter, bool * const obj) {
+enum caut_status decode_bool(U * const iter, bool * const obj) {
   CAUT_ASSERT(iter);
   CAUT_ASSERT(obj);
   MEMMOVE_UNPACK(iter, (uint8_t*)obj);
@@ -216,11 +216,51 @@ enum caut_status encode_tag16(struct caut_encode_iter * const iter, uint16_t con
   return encode_u16(iter, obj);
 }
 
-enum caut_status encode_tag12(struct caut_encode_iter * const iter, uint32_t const * const obj) {
+enum caut_status encode_tag32(struct caut_encode_iter * const iter, uint32_t const * const obj) {
   return encode_u32(iter, obj);
 }
 
-enum caut_status encode_tag14(struct caut_encode_iter * const iter, uint64_t const * const obj) {
+enum caut_status encode_tag64(struct caut_encode_iter * const iter, uint64_t const * const obj) {
   return encode_u64(iter, obj);
 }
 
+enum caut_status decode_tag8(struct caut_decode_iter * const iter, uint8_t * const obj) {
+  return decode_u8(iter, obj);
+}
+
+enum caut_status decode_tag16(struct caut_decode_iter * const iter, uint16_t * const obj) {
+  return decode_u16(iter, obj);
+}
+
+enum caut_status decode_tag32(struct caut_decode_iter * const iter, uint32_t * const obj) {
+  return decode_u32(iter, obj);
+}
+
+enum caut_status decode_tag64(struct caut_decode_iter * const iter, uint64_t * const obj) {
+  return decode_u64(iter, obj);
+}
+
+
+enum caut_ord compare_u8(uint8_t const * a, uint8_t const * b) { return CAUT_ORDER(*a, *b); }
+enum caut_ord compare_u16(uint16_t const * a, uint16_t const * b) { return CAUT_ORDER(*a, *b); }
+enum caut_ord compare_u32(uint32_t const * a, uint32_t const * b) { return CAUT_ORDER(*a, *b); }
+enum caut_ord compare_u64(uint64_t const * a, uint64_t const * b) { return CAUT_ORDER(*a, *b); }
+enum caut_ord compare_s8(int8_t const * a, int8_t const * b) { return CAUT_ORDER(*a, *b); }
+enum caut_ord compare_s16(int16_t const * a, int16_t const * b) { return CAUT_ORDER(*a, *b); }
+enum caut_ord compare_s32(int32_t const * a, int32_t const * b) { return CAUT_ORDER(*a, *b); }
+enum caut_ord compare_s64(int64_t const * a, int64_t const * b) { return CAUT_ORDER(*a, *b); }
+enum caut_ord compare_f32(float const * a, float const * b) { return CAUT_ORDER(*a, *b); }
+enum caut_ord compare_f64(double const * a, double const * b) { return CAUT_ORDER(*a, *b); }
+enum caut_ord compare_bool(bool const * a, bool const * b) { return CAUT_ORDER(*a, *b); }
+
+void init_u8(uint8_t * o) { *o = 0; }
+void init_u16(uint16_t * o) { *o = 0; }
+void init_u32(uint32_t * o) { *o = 0; }
+void init_u64(uint64_t * o) { *o = 0; }
+void init_s8(int8_t * o) { *o = 0; }
+void init_s16(int16_t * o) { *o = 0; }
+void init_s32(int32_t * o) { *o = 0; }
+void init_s64(int64_t * o) { *o = 0; }
+void init_f32(float * o) { *o = 0; }
+void init_f64(double * o) { *o = 0; }
+void init_bool(bool * o) { *o = false; }

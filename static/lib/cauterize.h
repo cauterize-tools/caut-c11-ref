@@ -15,6 +15,8 @@ enum caut_status {
   caut_status_invalid_length,
   caut_status_would_overflow,
   caut_status_would_underflow,
+  caut_status_enumeration_out_of_range,
+  caut_status_range_out_of_bounds,
 };
 
 enum caut_ord {
@@ -101,7 +103,7 @@ size_t caut_decode_iter_remaining(const struct caut_decode_iter * const iter);
 
 
 
-
+/* Encoders for all fundamental C types. */
 enum caut_status encode_s8(struct caut_encode_iter * const iter, int8_t const * const obj);
 enum caut_status encode_s16(struct caut_encode_iter * const iter, int16_t const * const obj);
 enum caut_status encode_s32(struct caut_encode_iter * const iter, int32_t const * const obj);
@@ -123,9 +125,12 @@ enum caut_status __caut_encode_reserve(struct caut_encode_iter * const iter, siz
 
 enum caut_status __caut_encode_raw_bytes(struct caut_encode_iter * const iter, uint8_t const * const bytes, size_t len);
 
+enum caut_status encode_tag8(struct caut_encode_iter * const iter, uint8_t const * const obj);
+enum caut_status encode_tag16(struct caut_encode_iter * const iter, uint16_t const * const obj);
+enum caut_status encode_tag32(struct caut_encode_iter * const iter, uint32_t const * const obj);
+enum caut_status encode_tag64(struct caut_encode_iter * const iter, uint64_t const * const obj);
 
-
-
+/* Decoders for all fundamental C types. */
 enum caut_status decode_s8(struct caut_decode_iter * const iter, int8_t * const obj);
 enum caut_status decode_s16(struct caut_decode_iter * const iter, int16_t * const obj);
 enum caut_status decode_s32(struct caut_decode_iter * const iter, int32_t * const obj);
@@ -144,10 +149,35 @@ enum caut_status decode_bool(struct caut_decode_iter * const iter, bool * const 
 enum caut_status __caut_decode_and_ignore_bytes(struct caut_decode_iter * const iter, size_t count);
 
 enum caut_status __caut_decode_raw_bytes(struct caut_decode_iter * const iter, uint8_t * const bytes, size_t len);
+enum caut_status decode_tag8(struct caut_decode_iter * const iter, uint8_t * const obj);
+enum caut_status decode_tag16(struct caut_decode_iter * const iter, uint16_t * const obj);
+enum caut_status decode_tag32(struct caut_decode_iter * const iter, uint32_t * const obj);
+enum caut_status decode_tag64(struct caut_decode_iter * const iter, uint64_t * const obj);
 
-enum caut_status encode_tag8(struct caut_encode_iter * const iter, uint8_t const * const obj);
-enum caut_status encode_tag16(struct caut_encode_iter * const iter, uint16_t const * const obj);
-enum caut_status encode_tag12(struct caut_encode_iter * const iter, uint32_t const * const obj);
-enum caut_status encode_tag14(struct caut_encode_iter * const iter, uint64_t const * const obj);
+/* Comparators for all fundamental C types. */
+enum caut_ord compare_u8(uint8_t const * a, uint8_t const * b);
+enum caut_ord compare_u16(uint16_t const * a, uint16_t const * b);
+enum caut_ord compare_u32(uint32_t const * a, uint32_t const * b);
+enum caut_ord compare_u64(uint64_t const * a, uint64_t const * b);
+enum caut_ord compare_s8(int8_t const * a, int8_t const * b);
+enum caut_ord compare_s16(int16_t const * a, int16_t const * b);
+enum caut_ord compare_s32(int32_t const * a, int32_t const * b);
+enum caut_ord compare_s64(int64_t const * a, int64_t const * b);
+enum caut_ord compare_f32(float const * a, float const * b);
+enum caut_ord compare_f64(double const * a, double const * b);
+enum caut_ord compare_bool(bool const * a, bool const * b);
+
+/* Initializers for all fundamental C types. */
+void init_u8(uint8_t * o);
+void init_u16(uint16_t * o);
+void init_u32(uint32_t * o);
+void init_u64(uint64_t * o);
+void init_s8(int8_t * o);
+void init_s16(int16_t * o);
+void init_s32(int32_t * o);
+void init_s64(int64_t * o);
+void init_f32(float * o);
+void init_f64(double * o);
+void init_bool(bool * o);
 
 #endif /* _CAUTERIZE_H_ */
