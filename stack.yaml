@@ -1,0 +1,8 @@
+flags: {}
+packages:
+- '.'
+- location:
+    git: https://github.com/cauterize-tools/cauterize.git
+    commit: 3e6d850720ae01b18feabf4814b4c00574c946ba
+extra-deps: []
+resolver: lts-2.21
