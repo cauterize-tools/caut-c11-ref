@@ -7,5 +7,8 @@ packages:
 - location:
     git: https://github.com/aisamanra/s-cargot.git
     commit: 1628a7c2913fc5e72ab6ea9a813762bf86d47d49
+- location:
+    git: https://github.com/cauterize-tools/crucible.git
+    commit: c67ac8fa22e5de86f13ab30c0e0abe881ebaab5a
 extra-deps: []
 resolver: lts-2.21
