@@ -3,6 +3,9 @@ packages:
 - '.'
 - location:
     git: https://github.com/cauterize-tools/cauterize.git
-    commit: 3e6d850720ae01b18feabf4814b4c00574c946ba
+    commit: d126fce770cee27e27938245b5bf9a95f0ac943d
+- location:
+    git: https://github.com/aisamanra/s-cargot.git
+    commit: 1628a7c2913fc5e72ab6ea9a813762bf86d47d49
 extra-deps: []
 resolver: lts-2.21
