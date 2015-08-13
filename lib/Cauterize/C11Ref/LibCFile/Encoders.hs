@@ -52,7 +52,7 @@ rangeEncoderBody o l t p = chompNewline [i|
       return caut_status_range_out_of_bounds;
     }
 
-    _c_tag = (#{tagt})(*_c_obj + #{o});
+    _c_tag = (#{tagt})(*_c_obj - #{o});
 
     STATUS_CHECK(#{tag2encodefn t}(_c_iter, &_c_tag));
 
@@ -96,7 +96,7 @@ enumerationEncoderBody n _ t = chompNewline [i|
       return caut_status_enumeration_out_of_range;
     }
 
-    _c_tag = (#{tagt})_c_obj;
+    _c_tag = (#{tagt})*_c_obj;
 
     STATUS_CHECK(#{tag2encodefn t}(_c_iter, &_c_tag));
 
