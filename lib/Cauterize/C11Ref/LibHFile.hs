@@ -44,10 +44,6 @@ fromSpec s = [chompNewline [i|
 #{typeIndicies}
   };
 |]
-
-  , comment "forward declarations"
-  , unlines (mapMaybe (typeForwardDecl luDecl) types)
-
   , comment "type definitions"
   , unlines (mapMaybe (typeDefinition luDecl) types)
 
@@ -77,22 +73,6 @@ fromSpec s = [chompNewline [i|
     luDecl n = fromMaybe (error $ "Invalid name: " ++ unpack (C.unIdentifier n) ++ ".")
                          (M.lookup n n2declMap)
 
-typeForwardDecl :: (C.Identifier -> String) -> S.Type -> Maybe String
-typeForwardDecl refDecl (S.Type { S.typeName = n, S.typeDesc = t }) = fmap ("  " ++) (go t)
-  where
-    n' = ident2str n
-    structish flavor = Just [i|struct #{n'}; /* #{flavor} */|]
-    go S.Synonym { S.synonymRef = r } =
-      Just [i|typedef #{refDecl r} #{n'}; /* synonym */|]
-    go S.Range { S.rangePrim = p } =
-      Just [i|typedef #{prim2c p} #{n'}; /* range */|]
-    go S.Array {} = structish "array"
-    go S.Vector {} = structish "vector"
-    go S.Enumeration {} = Nothing -- enumerations cannot be forward decl'ed in ISO C
-    go S.Record {} = structish "record"
-    go S.Combination {} = structish "combination"
-    go S.Union {} = structish "union"
-
 typeFuncPrototypes :: S.Type -> String
 typeFuncPrototypes t = chompNewline [i|
   enum caut_status encode_#{n}(struct caut_encode_iter * const _c_iter, #{d} const * const _c_obj);
@@ -107,8 +87,8 @@ typeFuncPrototypes t = chompNewline [i|
 typeDefinition :: (C.Identifier -> String) -> S.Type -> Maybe String
 typeDefinition refDecl (S.Type { S.typeName = n, S.typeDesc = d } ) =
   case d of
-    S.Synonym {} -> Nothing
-    S.Range {} -> Nothing
+    S.Synonym { S.synonymRef = r } -> Just [i|typedef #{refDecl r} #{n'}; /* synonym */|]
+    S.Range { S.rangePrim = p } -> Just [i|typedef #{prim2c p} #{n'}; /* range */|]
     S.Array {  S.arrayRef = r, S.arrayLength = l } -> Just $ defArray n' (refDecl r) (fromIntegral l)
     S.Vector { S.vectorRef = r, S.vectorLength = l, S.vectorTag = t } -> Just $ defVector n' (refDecl r) (fromIntegral l) t
     S.Enumeration { S.enumerationValues = vs } -> Just $ defEnum n' vs
