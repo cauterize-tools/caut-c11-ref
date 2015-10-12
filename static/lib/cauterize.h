@@ -1,6 +1,10 @@
 #ifndef _CAUTERIZE_H_
 #define _CAUTERIZE_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -179,5 +183,9 @@ void init_s64(int64_t * o);
 void init_f32(float * o);
 void init_f64(double * o);
 void init_bool(bool * o);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _CAUTERIZE_H_ */
