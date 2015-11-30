@@ -73,7 +73,7 @@ compareRecord fs = chompNewline [i|
 
 #{fieldComps}
 
-    return _c_o;
+    return caut_ord_eq;
 |]
   where
     fieldComps = intercalate "\n" $ map compareRecordField fs
