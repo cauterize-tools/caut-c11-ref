@@ -101,7 +101,7 @@ compareUnion n fs = chompNewline [i|
 #{fieldComps}
     }
 
-    return caut_ord_eq;|]
+    return _c_o;|]
   where
     fieldComps = intercalate "\n" $ map (compareUnionField n) fs
 
