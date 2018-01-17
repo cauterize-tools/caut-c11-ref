@@ -2,7 +2,8 @@ flags: {}
 packages:
 - '.'
 extra-deps:
-- s-cargot-0.1.0.0
+- GraphSCC-1.0.4
+- s-cargot-0.1.2.0
 - git: https://github.com/cauterize-tools/cauterize.git
   commit: e07434771d39961d89159add7fdacbedf1d9ff14
-resolver: lts-7.18
+resolver: lts-10.3
