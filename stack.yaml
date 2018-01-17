@@ -1,12 +1,9 @@
 flags: {}
 packages:
 - '.'
-- location:
-    git: https://github.com/cauterize-tools/cauterize.git
-    commit: bcd3ffefc677a02c0bbf95e7e806d1bf0b33d6dd
-- location:
-    git: https://github.com/cauterize-tools/crucible.git
-    commit: b2125cf19e64411c08b10a26bd8dffa17e11ec0e
 extra-deps:
-  - s-cargot-0.1.0.0
-resolver: lts-3.16
+- GraphSCC-1.0.4
+- s-cargot-0.1.2.0
+- git: https://github.com/cauterize-tools/cauterize.git
+  commit: e07434771d39961d89159add7fdacbedf1d9ff14
+resolver: lts-10.3

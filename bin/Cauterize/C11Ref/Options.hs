@@ -3,13 +3,14 @@ module Cauterize.C11Ref.Options
   , Caut2C11Opts(..)
   ) where
 
+import Data.Monoid         ((<>))
 import Options.Applicative
 
 runWithOptions :: (Caut2C11Opts -> IO ()) -> IO ()
 runWithOptions fn = execParser options >>= fn
 
 data Caut2C11Opts = Caut2C11Opts
-  { specFile :: FilePath
+  { specFile        :: FilePath
   , outputDirectory :: FilePath
   } deriving (Show)
 

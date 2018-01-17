@@ -10,8 +10,8 @@ library
   hs-source-dirs:      lib
   ghc-options:         -Wall
   default-language:    Haskell2010
-  build-depends:       base >=4.7 && <4.9,
-                       cauterize >= 0.1.0.0,
+  build-depends:       base >=4.7 && <= 4.10.1.0,
+                       cauterize >= 1.0.0,
                        containers,
                        file-embed,
                        bytestring,
@@ -36,9 +36,9 @@ executable caut-c11-ref
   hs-source-dirs:      bin
   main-is:             Main.hs
   ghc-options:         -Wall -O2 -threaded
-  build-depends:       base >=4.7 && <4.9,
+  build-depends:       base >=4.7 && <= 4.10.1.0,
                        caut-c11-ref,
-                       cauterize >= 0.1.0.0,
+                       cauterize >= 1.0.0,
                        optparse-applicative,
                        text,
                        filepath,
