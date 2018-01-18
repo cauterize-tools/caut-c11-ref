@@ -77,15 +77,13 @@ enumerationDecoderBody n _ t = chompNewline [i|
     #{tag2c t} _c_tag;
     STATUS_CHECK(#{tag2decodefn t}(_c_iter, &_c_tag));
 
-    if (#{lsym} < _c_tag) {
+    if (_c_tag < ENUM_MIN_VAL_#{n} || _c_tag > ENUM_MAX_VAL_#{n}) {
       return caut_status_enumeration_out_of_range;
     }
 
     *_c_obj = (enum #{n})_c_tag;
 
     return caut_status_ok;|]
-  where
-    lsym = "ENUM_MAX_VAL_" ++ n
 
 recordDecoderBody :: [S.Field] -> String
 recordDecoderBody fs =
@@ -101,11 +99,12 @@ combinationDecoderBody n fs fr =
   in intercalate "\n" $ (decodeFlags : checkFlags : decodeFields) ++ ["", "    return caut_status_ok;"]
 
 unionDecoderBody :: String -> [S.Field] -> C.Tag -> String
-unionDecoderBody n fs tr = chompNewline [i|
+unionDecoderBody n fs tr =
+  chompNewline [i|
     #{tag2c tr} _temp_tag;
     STATUS_CHECK(#{tag2decodefn tr}(_c_iter, &_temp_tag));
 
-    if (_temp_tag >= UNION_NUM_FIELDS_#{n}) {
+    if (_temp_tag < UNION_MIN_TAG_VALUE_#{n} || _temp_tag > UNION_MAX_TAG_VALUE_#{n}) {
       return caut_status_invalid_tag;
     } else {
       _c_obj->_tag = (enum #{n}_tag)_temp_tag;

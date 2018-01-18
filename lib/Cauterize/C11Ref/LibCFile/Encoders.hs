@@ -3,11 +3,11 @@ module Cauterize.C11Ref.LibCFile.Encoders
   ( typeEncoder
   ) where
 
-import Cauterize.C11Ref.Util
-import Data.String.Interpolate
-import Data.List (intercalate)
-import qualified Cauterize.CommonTypes as C
+import           Cauterize.C11Ref.Util
+import qualified Cauterize.CommonTypes   as C
 import qualified Cauterize.Specification as S
+import           Data.List               (intercalate)
+import           Data.String.Interpolate
 
 typeEncoder :: (C.Identifier -> String) -> S.Type -> String
 typeEncoder ident2decl t = chompNewline [i|
@@ -92,7 +92,7 @@ enumerationEncoderBody n [] _ = error $ "enumerationEncoderBody: enumeration '" 
 enumerationEncoderBody n _ t = chompNewline [i|
     #{tagt} _c_tag;
 
-    if (#{lsym} < *_c_obj) {
+    if (*_c_obj < ENUM_MIN_VAL_#{n} || *_c_obj > ENUM_MAX_VAL_#{n}) {
       return caut_status_enumeration_out_of_range;
     }
 
@@ -103,7 +103,6 @@ enumerationEncoderBody n _ t = chompNewline [i|
     return caut_status_ok;|]
   where
     tagt = tag2c t
-    lsym = "ENUM_MAX_VAL_" ++ n
 
 recordEncoderBody :: [S.Field] -> String
 recordEncoderBody fs =
@@ -119,10 +118,11 @@ combinationEncoderBody n fs fr =
   in intercalate "\n" $ (checkFlags : encodeFlags : encodeFields) ++ ["", "    return caut_status_ok;"]
 
 unionEncoderBody :: String -> [S.Field] -> C.Tag -> String
-unionEncoderBody n fs tr = chompNewline [i|
+unionEncoderBody n fs tr =
+  chompNewline [i|
     #{tag2c tr} _temp_tag = (#{tag2c tr})_c_obj->_tag;
 
-    if (_temp_tag >= UNION_NUM_FIELDS_#{n}) {
+    if (_temp_tag < UNION_MIN_TAG_VALUE_#{n} || _temp_tag > UNION_MAX_TAG_VALUE_#{n}) {
       return caut_status_invalid_tag;
     }
 

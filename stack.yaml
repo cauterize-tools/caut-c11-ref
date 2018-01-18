@@ -5,5 +5,5 @@ extra-deps:
 - GraphSCC-1.0.4
 - s-cargot-0.1.2.0
 - git: https://github.com/cauterize-tools/cauterize.git
-  commit: 7d44a8e2c027a93d7937b29aa9915a082919f6c5
+  commit: e07434771d39961d89159add7fdacbedf1d9ff14
 resolver: lts-10.3

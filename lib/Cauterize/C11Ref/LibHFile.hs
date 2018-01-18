@@ -123,10 +123,13 @@ defVector n refDecl len lenRep =
 defEnum :: String -> [S.EnumVal] -> String
 defEnum n [] = error $ "defEnum: enumeration '" ++ n ++ "' must have at least one value."
 defEnum n vs =
-  let maxValSym = [i|ENUM_MAX_VAL_#{n}|]
-      lsym = [i|#{n}_#{ident2str $ S.enumValName (last vs)}|]
+  let minValSym = [i|ENUM_MIN_VAL_#{n}|]
+      lminsym = [i|#{n}_#{ident2str $ S.enumValName (head vs)}|]
+      maxValSym = [i|ENUM_MAX_VAL_#{n}|]
+      lmaxsym = [i|#{n}_#{ident2str $ S.enumValName (last vs)}|]
   in chompNewline [i|
-  #define #{maxValSym} (#{lsym})
+  #define #{minValSym} (#{lminsym})
+  #define #{maxValSym} (#{lmaxsym})
   enum #{n} {
     #{vdefs}
   };
@@ -165,7 +168,8 @@ defCombination n refDecl fields flagsRepr = chompNewline [i|
 
 defUnion :: String -> (C.Identifier -> String) -> [S.Field] -> String
 defUnion n refDecl fields = chompNewline [i|
-  #define UNION_NUM_FIELDS_#{n} (0x#{numFields}ull)
+  #define UNION_MIN_TAG_VALUE_#{n} (0x#{minTag}ull)
+  #define UNION_MAX_TAG_VALUE_#{n} (0x#{maxTag}ull)
   struct #{n} {
     enum #{n}_tag {
       #{tagDefs}
@@ -180,7 +184,8 @@ defUnion n refDecl fields = chompNewline [i|
     defTag f = [i|#{n}_tag_#{ident2str $ S.fieldName f} = #{S.fieldIndex f},|]
     fdefs = intercalate "\n      " $ map defField fields
     tagDefs = intercalate "\n      " $ map defTag fields
-    numFields = length fields
+    minTag = S.fieldIndex (head fields)
+    maxTag = S.fieldIndex (last fields)
 
     isEmpty S.EmptyField {} = True
     isEmpty _ = False
