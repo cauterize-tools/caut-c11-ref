@@ -24,6 +24,10 @@ fromSpec s = [chompNewline [i|
   #ifndef #{guardSym}
   #define #{guardSym}
 
+  #ifdef __cplusplus
+  extern "C" {
+  #endif
+
   #include "cauterize.h"
 |]
   , comment "library meta information"
@@ -52,6 +56,10 @@ fromSpec s = [chompNewline [i|
 
   , blankLine
   , chompNewline [i|
+  #ifdef __cplusplus
+  }
+  #endif
+
   #endif /* #{guardSym} */
 |]
   ]
