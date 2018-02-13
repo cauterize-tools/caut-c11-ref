@@ -172,7 +172,7 @@ encodeField S.EmptyField { S.fieldName = n, S.fieldIndex = ix } =
 encodeCombField :: S.Field -> String
 encodeCombField f@S.EmptyField {} = "    " ++ encodeField f
 encodeCombField f@S.DataField { S.fieldIndex = ix } = chompNewline [i|
-    if (FSET(_c_obj->_flags, #{ix})) { #{encodeField f} }|]
+    if ((_c_obj->_flags) & (1ull << #{ix})) { #{encodeField f} }|]
 
 encodeUnionField :: String -> S.Field -> String
 encodeUnionField n f = [i|    case #{n}_tag_#{ident2str $ S.fieldName f}: #{encodeField f} break;|]

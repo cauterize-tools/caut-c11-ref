@@ -128,7 +128,7 @@ decodeField S.EmptyField { S.fieldName = n, S.fieldIndex = ix } =
 decodeCombField :: S.Field -> String
 decodeCombField f@S.EmptyField {} = "    " ++ decodeField f
 decodeCombField f@S.DataField { S.fieldIndex = ix } = chompNewline [i|
-    if (FSET(_c_obj->_flags, #{ix})) { #{decodeField f} }|]
+    if ((_c_obj->_flags) & (1ull << (#{ix})) { #{decodeField f} }|]
 
 decodeUnionField :: String -> S.Field -> String
 decodeUnionField n f = [i|    case #{n}_tag_#{ident2str $ S.fieldName f}: #{decodeField f} break;|]

@@ -26,7 +26,6 @@ fromSpec s = [chompNewline [i|
   #define R enum caut_status
   #define EI struct caut_encode_iter
   #define DI struct caut_decode_iter
-  #define FSET(FS,IX) ((FS) & (1ull << (IX)))
 |]
   , comment "type descriptors"
   , chompNewline [i|

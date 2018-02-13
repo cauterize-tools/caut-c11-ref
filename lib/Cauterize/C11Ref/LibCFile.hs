@@ -31,7 +31,6 @@ fromSpec s = [chompNewline [i|
   #define R enum caut_status
   #define EI struct caut_encode_iter
   #define DI struct caut_decode_iter
-  #define FSET(FS,IX) ((FS) & (1ull << (IX)))
 |]
   , comment "schema hash"
   , [i|  hashtype_t const SCHEMA_HASH_#{ln} = { #{hashToBytes (S.specFingerprint s)} };|]
