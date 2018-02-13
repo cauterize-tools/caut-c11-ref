@@ -4,9 +4,9 @@ module Cauterize.C11Ref.LibCFile.Encoders
   ) where
 
 import           Cauterize.C11Ref.Util
-import qualified Cauterize.CommonTypes   as C
-import qualified Cauterize.Specification as S
-import           Data.List               (intercalate)
+import qualified Cauterize.CommonTypes        as C
+import qualified Cauterize.Specification      as S
+import           Data.List                    (intercalate)
 import           Data.String.Interpolate
 
 typeEncoder :: (C.Identifier -> String) -> S.Type -> String
@@ -48,9 +48,9 @@ rangeEncoderBody :: C.Offset -> C.Length -> C.Tag -> C.Prim -> String
 rangeEncoderBody o l t p = chompNewline [i|
     #{tagt} _c_tag;
 
-    if (*_c_obj < #{rmin}#{prim2suffix p} || #{rmax}#{prim2suffix p} < *_c_obj) {
-      return caut_status_range_out_of_bounds;
-    }
+    #{minBoundsCheck}
+
+    #{maxBoundsCheck}
 
     _c_tag = (#{tagt})(*_c_obj - #{o});
 
@@ -61,6 +61,33 @@ rangeEncoderBody o l t p = chompNewline [i|
     tagt = tag2c t
     rmin = fromIntegral o :: Integer
     rmax = fromIntegral o + fromIntegral l :: Integer
+    minBoundsCheck = case (rmin,p) of
+      (0,C.PU8) -> ""
+      (0,C.PU16) -> ""
+      (0,C.PU32) -> ""
+      (0,C.PU64) -> ""
+      (-128,C.PS8) -> ""
+      (-32768,C.PS16) -> ""
+      (-2147483648,C.PS32) -> ""
+      (-9223372036854775808,C.PS64) -> ""
+      _ -> chompNewline [i|
+        if (*_c_obj < #{rmin}#{prim2suffix p}) {
+          return caut_status_range_out_of_bounds;
+        }
+        |]
+    maxBoundsCheck = case (rmax,p) of
+      (255,C.PU8) -> ""
+      (65535,C.PU16) -> ""
+      (4294967295,C.PU32) -> ""
+      (18446744073709551615,C.PU64) -> ""
+      (127,C.PS8) -> ""
+      (32767,C.PS16) -> ""
+      (2147483647,C.PS32) -> ""
+      (9223372036854775807,C.PS64) -> ""
+      _ -> chompNewline [i|
+        if (#{rmax}#{prim2suffix p} < *_c_obj) {
+          return caut_status_range_out_of_bounds;
+        }|]
 
 arrayEncoderBody :: String -> String
 arrayEncoderBody r = chompNewline [i|
